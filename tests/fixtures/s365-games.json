@@ -7,8 +7,8 @@
       "startTime": "2026-08-15T18:30:00+00:00",
       "statusGroup": 4,
       "statusText": "Ended",
-      "homeCompetitor": { "name": "FC Botosani", "score": 3 },
-      "awayCompetitor": { "name": "AFC Hermannstadt", "score": 0 }
+      "homeCompetitor": { "id": 5001, "name": "FC Botosani", "score": 3 },
+      "awayCompetitor": { "id": 5002, "name": "AFC Hermannstadt", "score": 0 }
     },
     {
       "id": 100002,
@@ -17,8 +17,8 @@
       "startTime": "2026-10-03T14:00:00+00:00",
       "statusGroup": 2,
       "statusText": "Scheduled",
-      "homeCompetitor": { "name": "FC Voluntari", "score": -1 },
-      "awayCompetitor": { "name": "FC Botosani", "score": -1 }
+      "homeCompetitor": { "id": 5003, "name": "FC Voluntari", "score": -1 },
+      "awayCompetitor": { "id": 5001, "name": "FC Botosani", "score": -1 }
     },
     {
       "id": 100003,

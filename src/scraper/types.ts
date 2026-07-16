@@ -7,6 +7,8 @@ export type FetchedMatch = {
   homeScore: number | null;
   awayScore: number | null;
   sourceGameId?: number;
+  homeCompId?: number;
+  awayCompId?: number;
 };
 
 export interface ScrapeSource {

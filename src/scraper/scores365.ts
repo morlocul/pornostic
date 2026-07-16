@@ -46,6 +46,8 @@ export function parse365Games(json: unknown): FetchedMatch[] {
         homeScore: score(g.homeCompetitor),
         awayScore: score(g.awayCompetitor),
         ...(typeof g.id === 'number' ? { sourceGameId: g.id } : {}),
+        ...(typeof g.homeCompetitor.id === 'number' ? { homeCompId: g.homeCompetitor.id } : {}),
+        ...(typeof g.awayCompetitor.id === 'number' ? { awayCompId: g.awayCompetitor.id } : {}),
       } as FetchedMatch;
     });
 }

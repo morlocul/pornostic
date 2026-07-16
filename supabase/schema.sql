@@ -25,6 +25,8 @@ create table matches (
   locked_manual boolean not null default false,
   goals jsonb,          -- goal-scorer details; null = never fetched, [] = fetched 0-0
   source_game_id bigint, -- 365Scores game id, used to fetch goal details
+  home_comp_id bigint,   -- 365Scores home competitor id, used for team logo
+  away_comp_id bigint,   -- 365Scores away competitor id, used for team logo
   unique (season, round, home_key)
 );
 

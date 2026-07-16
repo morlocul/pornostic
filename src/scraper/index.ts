@@ -33,6 +33,8 @@ async function upsertMatches(fetched: FetchedMatch[]): Promise<number> {
       away_score: m.awayScore,
       source: 'scraper' as const,
       ...(m.sourceGameId != null ? { source_game_id: m.sourceGameId } : {}),
+      ...(m.homeCompId != null ? { home_comp_id: m.homeCompId } : {}),
+      ...(m.awayCompId != null ? { away_comp_id: m.awayCompId } : {}),
     }))
     .filter((r) => !lockedSet.has(`${r.round}|${r.home_key}`));
 

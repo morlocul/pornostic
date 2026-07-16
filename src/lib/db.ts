@@ -17,6 +17,8 @@ export type Match = {
   source: 'scraper' | 'manual'; locked_manual: boolean;
   goals: MatchGoal[] | null;      // null = never fetched; [] = fetched, 0-0
   source_game_id: number | null;  // 365Scores game id
+  home_comp_id: number | null;    // 365Scores home competitor id (for logo)
+  away_comp_id: number | null;    // 365Scores away competitor id (for logo)
 };
 export type Prediction = {
   id: string; player_id: string; match_id: string;

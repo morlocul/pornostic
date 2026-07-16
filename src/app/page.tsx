@@ -6,6 +6,7 @@ import { currentRound, isLocked } from '@/lib/scoring';
 import { SEASON } from '@/lib/config';
 import PredictionForm from './PredictionForm';
 import GoalsList from './GoalsList';
+import TeamLogo from './TeamLogo';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,9 +45,15 @@ export default async function Home() {
         return (
           <div className="card" key={m.id}>
             <div className="teams">
-              <span>{m.home_team}</span>
+              <span className="team home">
+                <TeamLogo compId={m.home_comp_id} name={m.home_team} />
+                <span className="tname">{m.home_team}</span>
+              </span>
               <span className="vs">{m.status === 'finished' ? `${m.home_score} – ${m.away_score}` : fmt.format(new Date(m.kickoff_at))}</span>
-              <span>{m.away_team}</span>
+              <span className="team away">
+                <span className="tname">{m.away_team}</span>
+                <TeamLogo compId={m.away_comp_id} name={m.away_team} />
+              </span>
             </div>
             {m.status === 'postponed' && (
               <p className="muted">

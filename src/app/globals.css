@@ -216,6 +216,24 @@ nav a:active { transform: scale(.96); }
 }
 .teams span { font-size: 1rem; font-weight: 650; }
 .teams span:first-child { text-align: right; }
+
+/* team cell = logo + name; home hugs the centre from the right, away from the left */
+.teams .team {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.teams .team.home { justify-content: flex-end; }
+.teams .team.away { justify-content: flex-start; }
+.teams .team .tname { min-width: 0; overflow-wrap: anywhere; }
+.team-logo {
+  flex: none;            /* logo never shrinks — the name yields instead */
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 4px;
+}
 .vs {
   color: var(--muted);
   font-size: 0.72rem !important;

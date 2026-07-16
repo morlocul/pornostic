@@ -4,6 +4,7 @@ import path from 'path';
 import { parseSofascoreEvents } from './sofascore';
 import { parseTsdbEvents } from './thesportsdb';
 import { parse365Games, parse365Goals } from './scores365';
+import { S365_SEASON_NUM } from '@/lib/config';
 
 const fixture = (f: string) =>
   JSON.parse(readFileSync(path.resolve(__dirname, '../../tests/fixtures', f), 'utf8'));
@@ -60,6 +61,7 @@ describe('parse365Games', () => {
       round: 5, homeTeam: 'FC Botosani', awayTeam: 'AFC Hermannstadt',
       kickoffAt: new Date('2026-08-15T18:30:00+00:00').toISOString(),
       status: 'finished', homeScore: 3, awayScore: 0, sourceGameId: 100001,
+      homeCompId: 5001, awayCompId: 5002,
     });
   });
   it('maps a scheduled match with null scores', () => {
@@ -76,6 +78,28 @@ describe('parse365Games', () => {
   });
   it('maps sourceGameId from the game id', () => {
     expect(parsed()[0].sourceGameId).toBe(100001);
+  });
+  it('maps home/away competitor ids for logos', () => {
+    expect(parsed()[0].homeCompId).toBe(5001);
+    expect(parsed()[0].awayCompId).toBe(5002);
+    expect(parsed()[1].homeCompId).toBe(5003);
+    expect(parsed()[1].awayCompId).toBe(5001);
+  });
+  it('tolerates games without competitor ids (fields stay undefined)', () => {
+    const [m] = parse365Games({
+      games: [
+        {
+          seasonNum: S365_SEASON_NUM,
+          roundNum: 1,
+          startTime: '2026-08-15T18:30:00+00:00',
+          statusText: 'Scheduled',
+          homeCompetitor: { name: 'A' },
+          awayCompetitor: { name: 'B' },
+        },
+      ],
+    });
+    expect(m.homeCompId).toBeUndefined();
+    expect(m.awayCompId).toBeUndefined();
   });
 });
 
