@@ -25,7 +25,9 @@ export default function LoginForm() {
 
   return (
     <main className="auth">
-      <h1>⚽ Pronosticuri Liga 1</h1>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="auth-logo" src="/icon.svg" alt="Pornosticul de Folbal" width={112} height={112} />
+      <h1>Pornosticul de Folbal</h1>
       <div className="tabs">
         <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Intră</button>
         <button className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Înscrie-te</button>
