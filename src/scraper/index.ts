@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { SEASON } from '@/lib/config';
 import { normalizeTeam } from '@/lib/teams';
+import { recomputePoints } from '@/lib/recompute';
 import { FetchedMatch, ScrapeSource } from './types';
 import { sofascore } from './sofascore';
 import { thesportsdb } from './thesportsdb';
@@ -53,11 +54,21 @@ export async function runScrape(): Promise<{ ok: boolean; source: string; upsert
       if (!fetched.length) throw new Error('0 matches returned');
       const upserted = await upsertMatches(fetched);
       const result = { ok: true, source: source.name, upserted, message: `ok: ${fetched.length} fetched, ${upserted} upserted` };
-      await db().from('scrape_runs').insert({ source: source.name, ok: true, message: result.message, upserted });
+      try {
+        await db().from('scrape_runs').insert({ source: source.name, ok: true, message: result.message, upserted });
+      } catch { /* logging is best-effort */ }
+      try {
+        await recomputePoints();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        result.message += `; recompute failed: ${msg}`;
+      }
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      await db().from('scrape_runs').insert({ source: source.name, ok: false, message, upserted: 0 });
+      try {
+        await db().from('scrape_runs').insert({ source: source.name, ok: false, message, upserted: 0 });
+      } catch { /* logging is best-effort */ }
       // fall through to next source
     }
   }
