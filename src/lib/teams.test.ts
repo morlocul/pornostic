@@ -18,4 +18,15 @@ describe('normalizeTeam', () => {
   it('collapses punctuation and whitespace', () => {
     expect(normalizeTeam('  A.F.C.  Hermannstadt ')).toBe('hermannstadt');
   });
+  it('collapses cross-source name variants to one key', () => {
+    const pairs: [string, string][] = [
+      ['U Cluj', 'Universitatea Cluj'],
+      ['U Craiova', 'CS Universitatea Craiova'],
+      ['Poli Iasi', 'Politehnica Iași'],
+      ['FCSB', 'FCSB'],
+      ['AFC Hermannstadt', 'Hermannstadt'],
+      ['FC Botoșani', 'Botosani'],
+    ];
+    for (const [a, b] of pairs) expect(normalizeTeam(a)).toBe(normalizeTeam(b));
+  });
 });

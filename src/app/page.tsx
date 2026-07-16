@@ -35,7 +35,8 @@ export default async function Home() {
       <h1>Etapa {round} <Link className="hist" href={`/etapa/${round}`}>istoric →</Link></h1>
       {(matches ?? []).length === 0 && <p>Nu există meciuri încă. Adminul poate rula scraperul din pagina Admin.</p>}
       {(matches ?? []).map((m: Match) => {
-        const locked = isLocked(m.kickoff_at) || m.status !== 'scheduled';
+        const canPredict = m.status === 'scheduled' && !isLocked(m.kickoff_at);
+        const showOthers = isLocked(m.kickoff_at);
         const my = mine.get(m.id);
         const others = (preds ?? []).filter((p) => p.match_id === m.id && p.player_id !== session.playerId);
         return (
@@ -46,8 +47,8 @@ export default async function Home() {
               <span>{m.away_team}</span>
             </div>
             {m.status === 'postponed' && <p className="muted">Amânat</p>}
-            {!locked && <PredictionForm matchId={m.id} initialHome={my?.home_score ?? null} initialAway={my?.away_score ?? null} />}
-            {locked && (
+            {canPredict && <PredictionForm matchId={m.id} initialHome={my?.home_score ?? null} initialAway={my?.away_score ?? null} />}
+            {showOthers && (
               <div className="preds">
                 <p>{my ? `Tu: ${my.home_score}–${my.away_score}` : 'Tu: fără pronostic'}{my?.points != null && ` (${my.points}p)`}</p>
                 {others.map((p) => (

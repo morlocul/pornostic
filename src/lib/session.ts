@@ -4,7 +4,10 @@ import { cookies } from 'next/headers';
 export type Session = { playerId: string; name: string; isAdmin: boolean };
 
 const COOKIE = 'session';
-const secret = () => new TextEncoder().encode(process.env.SESSION_SECRET!);
+const secret = () => {
+  if (!process.env.SESSION_SECRET) throw new Error('SESSION_SECRET is not set');
+  return new TextEncoder().encode(process.env.SESSION_SECRET);
+};
 
 export async function createSessionToken(s: Session): Promise<string> {
   return new SignJWT({ ...s })

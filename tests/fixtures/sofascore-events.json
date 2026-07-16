@@ -19,6 +19,16 @@
       "status": { "code": 0, "type": "notstarted", "description": "Not started" },
       "homeScore": {},
       "awayScore": {}
+    },
+    {
+      "id": 55555555,
+      "roundInfo": { "round": 1 },
+      "homeTeam": { "name": "FC Voluntari" },
+      "awayTeam": { "name": "FC Botoșani" },
+      "startTimestamp": 1784302200,
+      "status": { "code": 60, "type": "postponed", "description": "Postponed" },
+      "homeScore": {},
+      "awayScore": {}
     }
   ]
 }

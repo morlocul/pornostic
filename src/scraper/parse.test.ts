@@ -23,6 +23,12 @@ describe('parseSofascoreEvents', () => {
     expect(m.homeScore).toBeNull();
     expect(m.awayScore).toBeNull();
   });
+  it('maps a postponed match with null scores', () => {
+    const m = parsed()[2];
+    expect(m.status).toBe('postponed');
+    expect(m.homeScore).toBeNull();
+    expect(m.awayScore).toBeNull();
+  });
 });
 
 describe('parseTsdbEvents', () => {

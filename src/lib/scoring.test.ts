@@ -49,4 +49,10 @@ describe('currentRound', () => {
   it('returns 1 for empty list', () => {
     expect(currentRound([])).toBe(1);
   });
+  it('skips a fully-postponed round (current behavior)', () => {
+    expect(currentRound([
+      { round: 1, status: 'postponed' }, { round: 1, status: 'postponed' },
+      { round: 2, status: 'scheduled' },
+    ])).toBe(2);
+  });
 });

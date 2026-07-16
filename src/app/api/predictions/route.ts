@@ -14,8 +14,8 @@ export async function POST(req: Request) {
 
   const { data: match } = await db().from('matches').select('*').eq('id', matchId).single();
   if (!match) return NextResponse.json({ error: 'Meci inexistent.' }, { status: 404 });
-  if (isLocked(match.kickoff_at))
-    return NextResponse.json({ error: 'Meciul a început — pronosticul e blocat.' }, { status: 403 });
+  if (match.status !== 'scheduled' || isLocked(match.kickoff_at))
+    return NextResponse.json({ error: 'Meciul nu mai poate fi pronosticat.' }, { status: 403 });
 
   const { error } = await db().from('predictions').upsert(
     { player_id: session.playerId, match_id: matchId, home_score: home, away_score: away, points: null, updated_at: new Date().toISOString() },
