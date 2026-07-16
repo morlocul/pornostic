@@ -55,7 +55,7 @@ export default async function Clasament({ searchParams }: { searchParams: Promis
 
   return (
     <main>
-      <h1>{heading}<a className="hist" href="/api/export" download>💾 Export CSV</a></h1>
+      <h1>{heading}<a className="hist" href="/api/export" download>💾 Export Excel</a></h1>
       <div className="tabs">
         <Link className={!activeLuna ? 'active' : undefined} href="/clasament">Total sezon</Link>
         {monthKeys.map((k) => (
