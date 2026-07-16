@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';
-import { SEASON } from '@/lib/config';
+import { SEASON, SHOW_ALL_PREDICTIONS } from '@/lib/config';
 import { buildExportWorkbook, type XlsxMatch, type XlsxPrediction, type XlsxPlayer } from '@/lib/xlsx';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +30,7 @@ export async function GET() {
     predictions,
     players,
     forPlayerId: session.playerId,
+    revealAll: SHOW_ALL_PREDICTIONS,
   });
 
   const buffer = await wb.xlsx.writeBuffer();

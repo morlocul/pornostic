@@ -113,6 +113,14 @@ describe('buildExportWorkbook — Pronosticuri sheet', () => {
     expect(r2.getCell(7).value).toBe('0-1'); // Bogza / p2 = requester
   });
 
+  it('reveals everyone on unlocked matches when revealAll is set', async () => {
+    const wb = await buildExportWorkbook({ matches, predictions, players, forPlayerId: 'p2', now: NOW, revealAll: true });
+    const ws = wb.getWorksheet('Pronosticuri')!;
+    const r2 = ws.getRow(4); // m2, unlocked
+    expect(r2.getCell(6).value).toBe('2-0'); // Ana / p1 visible despite not being the requester
+    expect(r2.getCell(7).value).toBe('0-1'); // Bogza / p2
+  });
+
   it('leaves a cell empty when the player made no prediction', async () => {
     const wb = await buildExportWorkbook({
       matches, players, forPlayerId: 'p1', now: NOW,

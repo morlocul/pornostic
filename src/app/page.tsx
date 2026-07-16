@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { db, Match, Prediction } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { currentRound, isLocked } from '@/lib/scoring';
-import { SEASON } from '@/lib/config';
+import { SEASON, SHOW_ALL_PREDICTIONS } from '@/lib/config';
 import PredictionForm from './PredictionForm';
 import GoalsList from './GoalsList';
 import TeamLogo from './TeamLogo';
@@ -39,7 +39,7 @@ export default async function Home() {
       {(matches ?? []).length === 0 && <p>Nu există meciuri încă. Adminul poate rula scraperul din pagina Admin.</p>}
       {(matches ?? []).map((m: Match) => {
         const canPredict = m.status === 'scheduled' && !isLocked(m.kickoff_at);
-        const showOthers = isLocked(m.kickoff_at);
+        const showOthers = SHOW_ALL_PREDICTIONS || isLocked(m.kickoff_at);
         const my = mine.get(m.id);
         const others = (preds ?? []).filter((p) => p.match_id === m.id && p.player_id !== session.playerId);
         return (

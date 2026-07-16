@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { db, Match } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { isLocked } from '@/lib/scoring';
-import { SEASON } from '@/lib/config';
+import { SEASON, SHOW_ALL_PREDICTIONS } from '@/lib/config';
 import GoalsList from '../../GoalsList';
 import TeamLogo from '../../TeamLogo';
 
@@ -36,7 +36,7 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
         </span>
       </h1>
       {(matches ?? []).map((m: Match) => {
-        const visible = isLocked(m.kickoff_at);
+        const visible = SHOW_ALL_PREDICTIONS || isLocked(m.kickoff_at);
         const mPreds = (preds ?? []).filter((p) => p.match_id === m.id);
         return (
           <div className="card" key={m.id}>

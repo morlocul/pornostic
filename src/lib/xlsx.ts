@@ -34,6 +34,8 @@ export type BuildExportInput = {
   players: XlsxPlayer[];
   forPlayerId: string;
   now?: Date;
+  /** true = pronosticurile tuturor apar și la meciurile neblocate (fără 🔒). */
+  revealAll?: boolean;
 };
 
 const LOCK = '🔒';
@@ -117,7 +119,7 @@ export async function buildExportWorkbook(input: BuildExportInput): Promise<Exce
     seasonTotals.set(pl.id, total);
   }
 
-  buildPronosticuriSheet(wb, matches, players, predByKey, seasonTotals, input.forPlayerId, now);
+  buildPronosticuriSheet(wb, matches, players, predByKey, seasonTotals, input.forPlayerId, now, input.revealAll ?? false);
   buildPeLuniSheet(wb, players, months, pointsByPlayerMonth);
   buildClasamentSheet(wb, matches, players, input.predictions);
 
@@ -132,6 +134,7 @@ function buildPronosticuriSheet(
   seasonTotals: Map<string, number>,
   forPlayerId: string,
   now: Date,
+  revealAll: boolean,
 ) {
   // Freeze the header AND the TOTAL row (first two rows).
   const ws = wb.addWorksheet('Pronosticuri', { views: [{ state: 'frozen', ySplit: 2 }] });
@@ -190,7 +193,7 @@ function buildPronosticuriSheet(
         continue;
       }
       // Hide other players' picks on a match that is not yet locked.
-      if (!locked && pl.id !== forPlayerId) {
+      if (!revealAll && !locked && pl.id !== forPlayerId) {
         rowValues.push(LOCK);
         cellFills.push(null);
         continue;
