@@ -1,66 +1,63 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { db, Match, Prediction } from '@/lib/db';
+import { getSession } from '@/lib/session';
+import { currentRound, isLocked } from '@/lib/scoring';
+import { SEASON } from '@/lib/config';
+import PredictionForm from './PredictionForm';
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+const fmt = new Intl.DateTimeFormat('ro-RO', {
+  timeZone: 'Europe/Bucharest', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+});
+
+export default async function Home() {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
+  const { data: allMatches } = await db().from('matches')
+    .select('id, round, status').eq('season', SEASON);
+  const round = currentRound(allMatches ?? []);
+
+  const { data: matches } = await db().from('matches')
+    .select('*').eq('season', SEASON).eq('round', round).order('kickoff_at');
+  const matchIds = (matches ?? []).map((m) => m.id);
+
+  const { data: preds } = matchIds.length
+    ? await db().from('predictions').select('*, players(name)').in('match_id', matchIds)
+    : { data: [] as (Prediction & { players: { name: string } })[] };
+
+  const mine = new Map((preds ?? []).filter((p) => p.player_id === session.playerId).map((p) => [p.match_id, p]));
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main>
+      <h1>Etapa {round} <Link className="hist" href={`/etapa/${round}`}>istoric →</Link></h1>
+      {(matches ?? []).length === 0 && <p>Nu există meciuri încă. Adminul poate rula scraperul din pagina Admin.</p>}
+      {(matches ?? []).map((m: Match) => {
+        const locked = isLocked(m.kickoff_at) || m.status !== 'scheduled';
+        const my = mine.get(m.id);
+        const others = (preds ?? []).filter((p) => p.match_id === m.id && p.player_id !== session.playerId);
+        return (
+          <div className="card" key={m.id}>
+            <div className="teams">
+              <span>{m.home_team}</span>
+              <span className="vs">{m.status === 'finished' ? `${m.home_score} – ${m.away_score}` : fmt.format(new Date(m.kickoff_at))}</span>
+              <span>{m.away_team}</span>
+            </div>
+            {m.status === 'postponed' && <p className="muted">Amânat</p>}
+            {!locked && <PredictionForm matchId={m.id} initialHome={my?.home_score ?? null} initialAway={my?.away_score ?? null} />}
+            {locked && (
+              <div className="preds">
+                <p>{my ? `Tu: ${my.home_score}–${my.away_score}` : 'Tu: fără pronostic'}{my?.points != null && ` (${my.points}p)`}</p>
+                {others.map((p) => (
+                  <p key={p.id} className="muted">{p.players.name}: {p.home_score}–{p.away_score}{p.points != null && ` (${p.points}p)`}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </main>
   );
 }
