@@ -1,0 +1,24 @@
+{
+  "events": [
+    {
+      "id": 11111111,
+      "roundInfo": { "round": 1 },
+      "homeTeam": { "name": "Metaloglobus" },
+      "awayTeam": { "name": "U Cluj" },
+      "startTimestamp": 1752249600,
+      "status": { "code": 100, "type": "finished", "description": "Ended" },
+      "homeScore": { "current": 1 },
+      "awayScore": { "current": 4 }
+    },
+    {
+      "id": 22222222,
+      "roundInfo": { "round": 1 },
+      "homeTeam": { "name": "FC Voluntari" },
+      "awayTeam": { "name": "FC Botoșani" },
+      "startTimestamp": 1784302200,
+      "status": { "code": 0, "type": "notstarted", "description": "Not started" },
+      "homeScore": {},
+      "awayScore": {}
+    }
+  ]
+}
