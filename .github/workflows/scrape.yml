@@ -1,0 +1,12 @@
+name: scrape
+on:
+  schedule:
+    - cron: '0,30 10-21 * * *'  # every 30 min, 10:00–21:30 UTC (13:00–00:30 Romania)
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sf -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.APP_URL }}/api/cron/scrape"
