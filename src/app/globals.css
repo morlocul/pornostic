@@ -335,6 +335,52 @@ nav a:active { transform: scale(.96); }
 .auth input::placeholder { color: var(--dim); }
 .auth button { width: 100%; }
 
+/* ---------- Install hint (PWA affordance) ---------- */
+.install-hint {
+  width: 100%;
+  max-width: 320px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.install-hint .install-btn {
+  width: 100%;
+  padding: 11px 14px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.03);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.install-hint .install-btn:hover { border-color: var(--accent); background: rgba(139,239,63,.06); }
+.install-hint .install-btn:active { transform: translateY(1px) scale(.99); }
+details.install-hint summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.02);
+  font-weight: 700;
+  color: var(--muted);
+  transition: color .15s, border-color .15s;
+}
+details.install-hint summary::-webkit-details-marker { display: none; }
+details.install-hint summary:hover { color: var(--text); border-color: var(--line); }
+details.install-hint[open] summary { color: var(--text); margin-bottom: 8px; }
+.install-hint ul {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  padding: 4px 6px;
+  line-height: 1.5;
+}
+.install-hint ul strong { color: var(--text); font-weight: 700; }
+
 /* ---------- Tabs / segmented control ---------- */
 .tabs {
   display: flex;

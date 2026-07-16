@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import InstallHint from '../InstallHint';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function LoginForm() {
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={busy}>{mode === 'login' ? 'Intră' : 'Creează cont'}</button>
       </form>
+      <InstallHint />
     </main>
   );
 }
