@@ -21,7 +21,7 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
     .select('*').eq('season', SEASON).eq('round', round).order('kickoff_at');
   const ids = (matches ?? []).map((m) => m.id);
   const { data: preds } = ids.length
-    ? await db().from('predictions').select('*, players(name)').in('match_id', ids)
+    ? await db().from('predictions').select('*, players(name, nickname)').in('match_id', ids)
     : { data: [] };
 
   return (
@@ -48,7 +48,7 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
               {visible && mPreds.length === 0 && <p className="muted">Niciun pronostic.</p>}
               {visible && mPreds.map((p) => (
                 <p key={p.id} className={p.points === 2 ? 'ok' : undefined}>
-                  {p.players.name}: {p.home_score}–{p.away_score}{p.points != null && ` (${p.points}p)`}
+                  {p.players.nickname ?? p.players.name}: {p.home_score}–{p.away_score}{p.points != null && ` (${p.points}p)`}
                 </p>
               ))}
             </div>

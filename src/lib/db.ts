@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export type Player = {
-  id: string; name: string; pin_hash: string; is_admin: boolean; created_at: string;
+  id: string; name: string; nickname: string | null; pin_hash: string; is_admin: boolean; created_at: string;
 };
 export type Match = {
   id: string; season: string; round: number;

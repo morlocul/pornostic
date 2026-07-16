@@ -15,6 +15,8 @@ export default async function AdminPage() {
     .select('*').eq('season', SEASON).order('round').order('kickoff_at');
   const { data: runs } = await db().from('scrape_runs')
     .select('*').order('ran_at', { ascending: false }).limit(10);
+  const { data: players } = await db().from('players')
+    .select('id, name, nickname').order('name');
 
-  return <AdminPanel matches={matches ?? []} runs={runs ?? []} />;
+  return <AdminPanel matches={matches ?? []} runs={runs ?? []} players={players ?? []} />;
 }

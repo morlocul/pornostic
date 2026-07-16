@@ -1,10 +1,13 @@
 create table players (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
+  nickname text,
   pin_hash text not null,
   is_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
+-- Self-chosen display name ("Poreclă"); case-insensitive unique, violation code 23505.
+create unique index players_nickname_lower_idx on players (lower(nickname));
 
 create table matches (
   id uuid primary key default gen_random_uuid(),

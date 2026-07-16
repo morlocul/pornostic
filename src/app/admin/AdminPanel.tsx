@@ -4,6 +4,34 @@ import { useRouter } from 'next/navigation';
 import type { Match } from '@/lib/db';
 
 type Run = { id: number; ran_at: string; source: string; ok: boolean; message: string | null; upserted: number };
+type PlayerRow = { id: string; name: string; nickname: string | null };
+
+function PlayerPinRow({ p }: { p: PlayerRow }) {
+  const [pin, setPin] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  async function reset() {
+    if (!/^\d{4}$/.test(pin)) { setMsg('4 cifre.'); return; }
+    setBusy(true); setMsg('');
+    const res = await fetch('/api/admin/players', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: p.id, newPin: pin }),
+    });
+    setBusy(false);
+    if (res.ok) { setMsg('✔ resetat'); setPin(''); }
+    else setMsg((await res.json()).error ?? 'Eroare.');
+  }
+
+  return (
+    <div className="row">
+      <span style={{ flex: 1 }}>{p.name}{p.nickname ? ` (${p.nickname})` : ''}</span>
+      <input className="score" style={{ width: 70 }} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="PIN nou" inputMode="numeric" maxLength={4} />
+      <button onClick={reset} disabled={busy}>Resetează</button>
+      {msg && <span className="muted">{msg}</span>}
+    </div>
+  );
+}
 
 function MatchRow({ m, onSaved }: { m: Match; onSaved: () => void }) {
   const [home, setHome] = useState(m.home_score?.toString() ?? '');
@@ -43,7 +71,7 @@ function MatchRow({ m, onSaved }: { m: Match; onSaved: () => void }) {
   );
 }
 
-export default function AdminPanel({ matches, runs }: { matches: Match[]; runs: Run[] }) {
+export default function AdminPanel({ matches, runs, players }: { matches: Match[]; runs: Run[]; players: PlayerRow[] }) {
   const router = useRouter();
   const [msg, setMsg] = useState('');
   const [nm, setNm] = useState({ round: '', home: '', away: '', kickoff: '' });
@@ -97,6 +125,10 @@ export default function AdminPanel({ matches, runs }: { matches: Match[]; runs: 
         <input type="datetime-local" value={nm.kickoff} onChange={(e) => setNm({ ...nm, kickoff: e.target.value })} required />
         <button type="submit">Adaugă</button>
       </form>
+
+      <h2>Jucători</h2>
+      <p className="muted">Resetează PIN-ul unui prieten care l-a uitat.</p>
+      {players.map((p) => <PlayerPinRow key={p.id} p={p} />)}
 
       <h2>Ultimele rulări scraper</h2>
       {runs.map((r) => (

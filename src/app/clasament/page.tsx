@@ -13,7 +13,7 @@ export default async function Clasament({ searchParams }: { searchParams: Promis
 
   const { luna } = await searchParams;
 
-  const { data: players } = await db().from('players').select('id, name');
+  const { data: players } = await db().from('players').select('id, name, nickname');
   const { data: predData } = await db().from('predictions')
     .select('player_id, points, matches(kickoff_at, season)')
     .not('points', 'is', null);
@@ -41,7 +41,8 @@ export default async function Clasament({ searchParams }: { searchParams: Promis
   const rows = (players ?? []).map((pl) => {
     const mine = inPeriod.filter((p) => p.player_id === pl.id);
     return {
-      name: pl.name,
+      id: pl.id,
+      label: pl.nickname ?? pl.name,
       points: mine.reduce((s, p) => s + (p.points ?? 0), 0),
       exact: mine.filter((p) => p.points === 2).length,
       correct: mine.filter((p) => p.points === 1).length,
@@ -67,9 +68,9 @@ export default async function Clasament({ searchParams }: { searchParams: Promis
         <thead><tr><th>#</th><th>Jucător</th><th className="num">Puncte</th><th className="num">Scor exact</th><th className="num">1X2</th></tr></thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.name}>
+            <tr key={r.id}>
               <td>{i + 1}</td>
-              <td>{r.name}{r.name === session.name ? ' (tu)' : ''}</td>
+              <td>{r.label}{r.id === session.playerId ? ' (tu)' : ''}</td>
               <td className="num"><strong>{r.points}</strong></td>
               <td className="num">{r.exact}</td>
               <td className="num">{r.correct}</td>

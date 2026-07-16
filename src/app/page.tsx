@@ -25,8 +25,8 @@ export default async function Home() {
   const matchIds = (matches ?? []).map((m) => m.id);
 
   const { data: preds } = matchIds.length
-    ? await db().from('predictions').select('*, players(name)').in('match_id', matchIds)
-    : { data: [] as (Prediction & { players: { name: string } })[] };
+    ? await db().from('predictions').select('*, players(name, nickname)').in('match_id', matchIds)
+    : { data: [] as (Prediction & { players: { name: string; nickname: string | null } })[] };
 
   const mine = new Map((preds ?? []).filter((p) => p.player_id === session.playerId).map((p) => [p.match_id, p]));
 
@@ -53,7 +53,7 @@ export default async function Home() {
               <div className="preds">
                 <p>{my ? `Tu: ${my.home_score}–${my.away_score}` : 'Tu: fără pronostic'}{my?.points != null && ` (${my.points}p)`}</p>
                 {others.map((p) => (
-                  <p key={p.id} className="muted">{p.players.name}: {p.home_score}–{p.away_score}{p.points != null && ` (${p.points}p)`}</p>
+                  <p key={p.id} className="muted">{p.players.nickname ?? p.players.name}: {p.home_score}–{p.away_score}{p.points != null && ` (${p.points}p)`}</p>
                 ))}
               </div>
             )}
