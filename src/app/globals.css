@@ -23,9 +23,9 @@ a { color: var(--accent); }
 .auth { display: flex; flex-direction: column; gap: 16px; margin-top: 15vh; text-align: center; }
 .auth form { display: flex; flex-direction: column; gap: 12px; }
 .auth input { padding: 12px; border-radius: 8px; border: 1px solid var(--muted); background: var(--card); color: var(--text); font-size: 1rem; text-align: center; }
-.tabs { display: flex; gap: 8px; justify-content: center; }
-.tabs button { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--muted); background: transparent; color: var(--text); cursor: pointer; }
-.tabs button.active { background: var(--accent); color: #222; border-color: var(--accent); font-weight: 700; }
+.tabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.tabs button, .tabs a { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--muted); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; }
+.tabs button.active, .tabs a.active { background: var(--accent); color: #222; border-color: var(--accent); font-weight: 700; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 8px; text-align: left; border-bottom: 1px solid #2a3d57; }
 td.num, th.num { text-align: right; }
