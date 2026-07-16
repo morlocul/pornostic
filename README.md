@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚽ Pronosticuri Liga 1
 
-## Getting Started
+Aplicație de pronosticuri pentru SuperLiga României, pentru un grup de prieteni.
+Punctaj: 1X2 corect = 1 punct, scor exact = 2 puncte.
 
-First, run the development server:
+## Rulare locală
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. `npm install`
+2. Creează un proiect gratuit pe [supabase.com](https://supabase.com) → SQL Editor → rulează conținutul din `supabase/schema.sql`.
+3. Copiază `.env.example` în `.env.local` și completează:
+   - `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — din Supabase: Settings → API (folosește cheia `service_role`, NU `anon`).
+   - `SESSION_SECRET`, `CRON_SECRET` — orice șiruri aleatorii lungi (`openssl rand -hex 32` sau [random.org](https://random.org)).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   > ⚠️ **`SESSION_SECRET` și `CRON_SECRET` sunt obligatorii în producție** — nu le lăsa goale la deploy. Dacă `CRON_SECRET` lipsește, endpoint-ul de cron ajunge să accepte literalmente header-ul `Bearer undefined`, adică oricine îl poate declanșa. Fără `SESSION_SECRET` securitatea sesiunilor e compromisă (autentificarea nu mai e de încredere).
+4. `npm run dev` → http://localhost:3000
+5. Înscrie-te — **primul cont creat devine admin**.
+6. Din pagina Admin, apasă „Rulează scraperul acum" ca să populezi meciurile.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy pe Vercel (gratuit)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Urcă repo-ul pe GitHub.
+2. [vercel.com](https://vercel.com) → Add New Project → importă repo-ul → Framework: Next.js (auto).
+3. La Environment Variables adaugă toate cele 4 variabile din `.env.local` (inclusiv `SESSION_SECRET` și `CRON_SECRET` — vezi avertismentul de mai sus).
+4. Deploy. Primești un URL gen `https://pronosticuri.vercel.app` — trimite-l prietenilor.
+5. Cron zilnic Vercel: e deja configurat în `vercel.json` (rulează la 08:00 UTC).
 
-## Learn More
+## Scraper des (GitHub Actions, gratuit)
 
-To learn more about Next.js, take a look at the following resources:
+În repo pe GitHub → Settings:
+- Secrets and variables → Actions → **Secrets** → `CRON_SECRET` = aceeași valoare ca pe Vercel.
+- Secrets and variables → Actions → **Variables** → `APP_URL` = URL-ul Vercel (fără slash final).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Workflow-ul `.github/workflows/scrape.yml` rulează la fiecare 30 min (10:00–21:30 UTC). Îl poți porni și manual (workflow_dispatch) din tab-ul **Actions**.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Dacă scraperul dă 403 (Sofascore blochează Vercel)
 
-## Deploy on Vercel
+Aplicația trece automat pe TheSportsDB. Dacă și acela e incomplet, adaugă/corectează meciurile din pagina **Admin** — tot ce e „fixat" manual nu mai e atins de scraper.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Teste
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npm test`
