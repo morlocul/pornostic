@@ -57,7 +57,11 @@ export default function InstallHint() {
           Adaugă pe ecranul principal”.
         </li>
         <li>
-          <strong>Android:</strong> Chrome → meniul ⋮ → „Instalează aplicația”.
+          <strong>Android (Chrome):</strong> meniul ⋮ → „Instalează aplicația”.
+        </li>
+        <li>
+          <strong>Samsung Internet:</strong> meniul ≡ (jos dreapta) → „Adăugare
+          pagină la” → „Ecran de pornire”.
         </li>
       </ul>
     </details>
