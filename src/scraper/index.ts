@@ -3,10 +3,11 @@ import { SEASON } from '@/lib/config';
 import { normalizeTeam } from '@/lib/teams';
 import { recomputePoints } from '@/lib/recompute';
 import { FetchedMatch, ScrapeSource } from './types';
+import { scores365 } from './scores365';
 import { sofascore } from './sofascore';
 import { thesportsdb } from './thesportsdb';
 
-const SOURCES: ScrapeSource[] = [sofascore, thesportsdb];
+const SOURCES: ScrapeSource[] = [scores365, sofascore, thesportsdb];
 
 async function upsertMatches(fetched: FetchedMatch[]): Promise<number> {
   if (!fetched.length) return 0;

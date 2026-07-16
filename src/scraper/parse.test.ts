@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { parseSofascoreEvents } from './sofascore';
 import { parseTsdbEvents } from './thesportsdb';
+import { parse365Games } from './scores365';
 
 const fixture = (f: string) =>
   JSON.parse(readFileSync(path.resolve(__dirname, '../../tests/fixtures', f), 'utf8'));
@@ -48,5 +49,29 @@ describe('parseTsdbEvents', () => {
   });
   it('tolerates a null events payload', () => {
     expect(parseTsdbEvents({ events: null })).toEqual([]);
+  });
+});
+
+describe('parse365Games', () => {
+  const parsed = () => parse365Games(fixture('s365-games.json'));
+  it('maps a finished match with rounded scores and ISO kickoff', () => {
+    const m = parsed()[0];
+    expect(m).toEqual({
+      round: 5, homeTeam: 'FC Botosani', awayTeam: 'AFC Hermannstadt',
+      kickoffAt: new Date('2026-08-15T18:30:00+00:00').toISOString(),
+      status: 'finished', homeScore: 3, awayScore: 0,
+    });
+  });
+  it('maps a scheduled match with null scores', () => {
+    const m = parsed()[1];
+    expect(m.status).toBe('scheduled');
+    expect(m.homeScore).toBeNull();
+    expect(m.awayScore).toBeNull();
+  });
+  it('filters out games from other seasons', () => {
+    expect(parsed()).toHaveLength(2);
+  });
+  it('tolerates a null games payload', () => {
+    expect(parse365Games({ games: null })).toEqual([]);
   });
 });
