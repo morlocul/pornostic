@@ -10,3 +10,5 @@ jobs:
       - run: |
           curl -sf -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "${{ vars.APP_URL }}/api/cron/scrape"
+
+# Pornostic scraper schedule
