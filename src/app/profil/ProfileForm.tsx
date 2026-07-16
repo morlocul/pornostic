@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import InstallHint from '../InstallHint';
 
 export default function ProfileForm({ name, nickname }: { name: string; nickname: string }) {
   const router = useRouter();
@@ -77,6 +78,7 @@ export default function ProfileForm({ name, nickname }: { name: string; nickname
         {pinMsg && <p className="ok">{pinMsg}</p>}
         <button type="submit" disabled={pinBusy}>Schimbă PIN-ul</button>
       </form>
+      <InstallHint />
     </main>
   );
 }
