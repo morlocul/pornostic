@@ -5,6 +5,7 @@ import { getSession } from '@/lib/session';
 import { currentRound, isLocked } from '@/lib/scoring';
 import { SEASON } from '@/lib/config';
 import PredictionForm from './PredictionForm';
+import GoalsList from './GoalsList';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,12 @@ export default async function Home() {
               <span className="vs">{m.status === 'finished' ? `${m.home_score} – ${m.away_score}` : fmt.format(new Date(m.kickoff_at))}</span>
               <span>{m.away_team}</span>
             </div>
-            {m.status === 'postponed' && <p className="muted">Amânat</p>}
+            {m.status === 'postponed' && (
+              <p className="muted">
+                {new Date(m.kickoff_at) > new Date() ? `Amânat până ${fmt.format(new Date(m.kickoff_at))}` : 'Amânat — dată nouă în curând'}
+              </p>
+            )}
+            {m.status === 'finished' && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
             {canPredict && <PredictionForm matchId={m.id} initialHome={my?.home_score ?? null} initialAway={my?.away_score ?? null} />}
             {showOthers && (
               <div className="preds">

@@ -6,6 +6,7 @@ export type FetchedMatch = {
   status: 'scheduled' | 'finished' | 'postponed';
   homeScore: number | null;
   awayScore: number | null;
+  sourceGameId?: number;
 };
 
 export interface ScrapeSource {

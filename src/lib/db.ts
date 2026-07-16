@@ -3,12 +3,20 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 export type Player = {
   id: string; name: string; nickname: string | null; pin_hash: string; is_admin: boolean; created_at: string;
 };
+export type MatchGoal = {
+  min: string;            // minute display incl. added time, e.g. "19'" or "45'+2"
+  player: string;         // scorer name, or 'necunoscut' when unresolved
+  side: 'home' | 'away';  // competitor whose player scored (own goals keep this side)
+  kind: 'goal' | 'penalty' | 'own_goal';
+};
 export type Match = {
   id: string; season: string; round: number;
   home_team: string; away_team: string; home_key: string; away_key: string;
   kickoff_at: string; status: 'scheduled' | 'finished' | 'postponed';
   home_score: number | null; away_score: number | null;
   source: 'scraper' | 'manual'; locked_manual: boolean;
+  goals: MatchGoal[] | null;      // null = never fetched; [] = fetched, 0-0
+  source_game_id: number | null;  // 365Scores game id
 };
 export type Prediction = {
   id: string; player_id: string; match_id: string;

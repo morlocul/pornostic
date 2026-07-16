@@ -1,0 +1,46 @@
+{
+  "game": {
+    "id": 100001,
+    "homeCompetitor": { "id": 5000, "name": "FC Botosani" },
+    "awayCompetitor": { "id": 6000, "name": "AFC Hermannstadt" },
+    "members": [
+      { "id": 101, "name": "Andrei Ciobanu" },
+      { "id": 102, "name": "Ianis Stoica" },
+      { "id": 103, "name": "Marius Stefanescu" }
+    ],
+    "events": [
+      {
+        "competitorId": 5000,
+        "gameTime": 19,
+        "addedTime": 0,
+        "gameTimeDisplay": "19'",
+        "playerId": 101,
+        "eventType": { "id": 33, "name": "Goal", "subTypeName": null }
+      },
+      {
+        "competitorId": 6000,
+        "gameTime": 45,
+        "addedTime": 2,
+        "gameTimeDisplay": "45'+2",
+        "playerId": 102,
+        "eventType": { "id": 33, "name": "Goal", "subTypeName": "Penalty" }
+      },
+      {
+        "competitorId": 5000,
+        "gameTime": 70,
+        "addedTime": 0,
+        "gameTimeDisplay": "70'",
+        "playerId": 999,
+        "eventType": { "id": 33, "name": "Goal", "subTypeName": "Own Goal" }
+      },
+      {
+        "competitorId": 6000,
+        "gameTime": 55,
+        "addedTime": 0,
+        "gameTimeDisplay": "55'",
+        "playerId": 103,
+        "eventType": { "id": 5, "name": "Yellow Card", "subTypeName": null }
+      }
+    ]
+  }
+}

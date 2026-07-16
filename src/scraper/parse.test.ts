@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { parseSofascoreEvents } from './sofascore';
 import { parseTsdbEvents } from './thesportsdb';
-import { parse365Games } from './scores365';
+import { parse365Games, parse365Goals } from './scores365';
 
 const fixture = (f: string) =>
   JSON.parse(readFileSync(path.resolve(__dirname, '../../tests/fixtures', f), 'utf8'));
@@ -59,7 +59,7 @@ describe('parse365Games', () => {
     expect(m).toEqual({
       round: 5, homeTeam: 'FC Botosani', awayTeam: 'AFC Hermannstadt',
       kickoffAt: new Date('2026-08-15T18:30:00+00:00').toISOString(),
-      status: 'finished', homeScore: 3, awayScore: 0,
+      status: 'finished', homeScore: 3, awayScore: 0, sourceGameId: 100001,
     });
   });
   it('maps a scheduled match with null scores', () => {
@@ -73,5 +73,44 @@ describe('parse365Games', () => {
   });
   it('tolerates a null games payload', () => {
     expect(parse365Games({ games: null })).toEqual([]);
+  });
+  it('maps sourceGameId from the game id', () => {
+    expect(parsed()[0].sourceGameId).toBe(100001);
+  });
+});
+
+describe('parse365Goals', () => {
+  const goals = () => parse365Goals(fixture('s365-game-detail.json'));
+  it('excludes non-goal events (Yellow Card)', () => {
+    expect(goals()).toHaveLength(3);
+  });
+  it('preserves the minute display incl. added time', () => {
+    expect(goals()[0].min).toBe("19'");
+    expect(goals()[1].min).toBe("45'+2");
+  });
+  it('resolves the scorer name via members', () => {
+    expect(goals()[0].player).toBe('Andrei Ciobanu');
+    expect(goals()[1].player).toBe('Ianis Stoica');
+  });
+  it('maps the side from home/away competitor id', () => {
+    expect(goals()[0].side).toBe('home');
+    expect(goals()[1].side).toBe('away');
+  });
+  it('maps kind from subTypeName', () => {
+    expect(goals()[0].kind).toBe('goal');
+    expect(goals()[1].kind).toBe('penalty');
+    expect(goals()[2].kind).toBe('own_goal');
+  });
+  it('keeps own-goal side as the scoring competitor (does not flip)', () => {
+    expect(goals()[2].side).toBe('home');
+  });
+  it('falls back to "necunoscut" when the member is missing', () => {
+    expect(goals()[2].player).toBe('necunoscut');
+  });
+  it('orders goals by gameTime', () => {
+    expect(goals().map((g) => g.min)).toEqual(["19'", "45'+2", "70'"]);
+  });
+  it('tolerates an empty game object', () => {
+    expect(parse365Goals({ game: {} })).toEqual([]);
   });
 });

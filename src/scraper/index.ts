@@ -3,7 +3,7 @@ import { SEASON } from '@/lib/config';
 import { normalizeTeam } from '@/lib/teams';
 import { recomputePoints } from '@/lib/recompute';
 import { FetchedMatch, ScrapeSource } from './types';
-import { scores365 } from './scores365';
+import { scores365, fetchGameGoals } from './scores365';
 import { sofascore } from './sofascore';
 import { thesportsdb } from './thesportsdb';
 
@@ -32,6 +32,7 @@ async function upsertMatches(fetched: FetchedMatch[]): Promise<number> {
       home_score: m.homeScore,
       away_score: m.awayScore,
       source: 'scraper' as const,
+      ...(m.sourceGameId != null ? { source_game_id: m.sourceGameId } : {}),
     }))
     .filter((r) => !lockedSet.has(`${r.round}|${r.home_key}`));
 
@@ -46,6 +47,33 @@ async function upsertMatches(fetched: FetchedMatch[]): Promise<number> {
     .upsert(deduped, { onConflict: 'season,round,home_key' });
   if (error) throw new Error(error.message);
   return deduped.length;
+}
+
+// Best-effort: fill goal-scorer details for finished matches that have a
+// 365Scores game id but no goals yet. Never throws — failures leave goals
+// null so the match is retried on the next run. Returns the count filled.
+async function fillGoals(limit = 8): Promise<number> {
+  const { data, error } = await db()
+    .from('matches')
+    .select('id, source_game_id')
+    .eq('season', SEASON)
+    .eq('status', 'finished')
+    .is('goals', null)
+    .not('source_game_id', 'is', null)
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  let filled = 0;
+  for (const m of data ?? []) {
+    try {
+      const goals = await fetchGameGoals(m.source_game_id as number);
+      const { error: upErr } = await db().from('matches').update({ goals }).eq('id', m.id);
+      if (upErr) throw new Error(upErr.message);
+      filled += 1;
+    } catch {
+      // one game failed — leave it null, retried next run
+    }
+  }
+  return filled;
 }
 
 export async function runScrape(): Promise<{ ok: boolean; source: string; upserted: number; message: string }> {
@@ -63,6 +91,12 @@ export async function runScrape(): Promise<{ ok: boolean; source: string; upsert
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         result.message += `; recompute failed: ${msg}`;
+      }
+      try {
+        const filled = await fillGoals();
+        if (filled > 0) result.message += `; goluri: ${filled} meciuri`;
+      } catch {
+        // goals pass is best-effort — must never fail the run
       }
       return result;
     } catch (err) {

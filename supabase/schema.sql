@@ -23,6 +23,8 @@ create table matches (
   away_score int,
   source text not null default 'scraper' check (source in ('scraper','manual')),
   locked_manual boolean not null default false,
+  goals jsonb,          -- goal-scorer details; null = never fetched, [] = fetched 0-0
+  source_game_id bigint, -- 365Scores game id, used to fetch goal details
   unique (season, round, home_key)
 );
 

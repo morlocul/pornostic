@@ -4,6 +4,7 @@ import { db, Match } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { isLocked } from '@/lib/scoring';
 import { SEASON } from '@/lib/config';
+import GoalsList from '../../GoalsList';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,11 +41,12 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
           <div className="card" key={m.id}>
             <div className="teams">
               <span>{m.home_team}</span>
-              <span className="vs">{m.status === 'finished' ? `${m.home_score} – ${m.away_score}` : m.status === 'postponed' ? 'Amânat' : fmt.format(new Date(m.kickoff_at))}</span>
+              <span className="vs">{m.status === 'finished' ? `${m.home_score} – ${m.away_score}` : m.status === 'postponed' ? (new Date(m.kickoff_at) > new Date() ? `Amânat până ${fmt.format(new Date(m.kickoff_at))}` : 'Amânat') : fmt.format(new Date(m.kickoff_at))}</span>
               <span>{m.away_team}</span>
             </div>
+            {m.status === 'finished' && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
             <div className="preds">
-              {!visible && <p className="muted">Pronosticurile devin vizibile la începerea meciului.</p>}
+              {!visible && <p className="muted">Pronosticurile devin vizibile cu o oră înainte de meci.</p>}
               {visible && mPreds.length === 0 && <p className="muted">Niciun pronostic.</p>}
               {visible && mPreds.map((p) => (
                 <p key={p.id} className={p.points === 2 ? 'ok' : undefined}>

@@ -292,6 +292,27 @@ nav a:active { transform: scale(.96); }
 }
 .preds p:first-child { font-weight: 700; }
 
+/* ---------- Goal scorers (finished matches) ---------- */
+.goals {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 16px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.goals-col { display: grid; gap: 3px; align-content: start; }
+.goals-home { text-align: right; }
+.goals-away { text-align: left; }
+.goals .min {
+  color: var(--dim);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-right: 2px;
+}
+
 .notice {
   color: var(--muted);
   font-size: 0.8rem;

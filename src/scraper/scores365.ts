@@ -1,18 +1,22 @@
 import { S365_COMPETITION, S365_SEASON_NUM } from '@/lib/config';
+import { MatchGoal } from '@/lib/db';
 import { FetchedMatch, ScrapeSource } from './types';
 
 const BASE = 'https://webws.365scores.com/web/games';
 const QUERY = `?appTypeId=5&langId=1&timezoneName=UTC&competitions=${S365_COMPETITION}&showOdds=false`;
 const FIXTURES_URL = `${BASE}/fixtures/${QUERY}`;
 const RESULTS_URL = `${BASE}/results/${QUERY}`;
+const GAME_URL = (gameId: number) =>
+  `https://webws.365scores.com/web/game/?appTypeId=5&langId=1&timezoneName=UTC&gameId=${gameId}`;
 
 const HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36',
 };
 
-type S365Competitor = { name: string; score?: number };
+type S365Competitor = { id?: number; name: string; score?: number };
 type S365Game = {
+  id?: number;
   seasonNum?: number;
   roundNum?: number;
   startTime?: string;
@@ -41,8 +45,55 @@ export function parse365Games(json: unknown): FetchedMatch[] {
         status: finished ? 'finished' : postponed ? 'postponed' : 'scheduled',
         homeScore: score(g.homeCompetitor),
         awayScore: score(g.awayCompetitor),
+        ...(typeof g.id === 'number' ? { sourceGameId: g.id } : {}),
       } as FetchedMatch;
     });
+}
+
+type S365Event = {
+  competitorId?: number;
+  gameTime?: number;
+  gameTimeDisplay?: string;
+  playerId?: number;
+  eventType?: { name?: string; subTypeName?: string | null };
+};
+type S365GameDetail = {
+  game?: {
+    homeCompetitor?: { id?: number };
+    awayCompetitor?: { id?: number };
+    members?: { id?: number; name?: string }[];
+    events?: S365Event[];
+  };
+};
+
+export function parse365Goals(json: unknown): MatchGoal[] {
+  const game = (json as S365GameDetail)?.game;
+  if (!game) return [];
+  const awayId = game.awayCompetitor?.id;
+  const names = new Map(
+    (game.members ?? []).map((m) => [m.id, m.name] as const),
+  );
+  const kindOf = (subType?: string | null): MatchGoal['kind'] => {
+    if (subType === 'Penalty') return 'penalty';
+    if (subType === 'Own Goal') return 'own_goal';
+    return 'goal';
+  };
+  return (game.events ?? [])
+    .filter((e) => e.eventType?.name === 'Goal')
+    .slice()
+    .sort((a, b) => (a.gameTime ?? 0) - (b.gameTime ?? 0))
+    .map((e) => ({
+      min: e.gameTimeDisplay ?? '',
+      player: names.get(e.playerId) ?? 'necunoscut',
+      side: e.competitorId === awayId ? 'away' : 'home',
+      kind: kindOf(e.eventType?.subTypeName),
+    }));
+}
+
+export async function fetchGameGoals(gameId: number): Promise<MatchGoal[]> {
+  const res = await fetch(GAME_URL(gameId), { headers: HEADERS, cache: 'no-store' });
+  if (!res.ok) throw new Error(`scores365 game ${gameId}: HTTP ${res.status}`);
+  return parse365Goals(await res.json());
 }
 
 async function fetchUrl(url: string): Promise<FetchedMatch[]> {
