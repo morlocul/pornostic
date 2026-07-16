@@ -20,12 +20,14 @@ describe('scorePrediction', () => {
 
 describe('isLocked', () => {
   const kickoff = '2026-07-20T18:00:00Z';
-  it('open before kickoff', () => {
-    expect(isLocked(kickoff, new Date('2026-07-20T17:59:59Z'))).toBe(false);
+  it('open until 60 minutes before kickoff', () => {
+    // 61 min before → still open
+    expect(isLocked(kickoff, new Date('2026-07-20T16:59:00Z'))).toBe(false);
   });
-  it('locked at and after kickoff', () => {
-    expect(isLocked(kickoff, new Date('2026-07-20T18:00:00Z'))).toBe(true);
-    expect(isLocked(kickoff, new Date('2026-07-21T00:00:00Z'))).toBe(true);
+  it('locked from 60 minutes before, at kickoff, and after', () => {
+    expect(isLocked(kickoff, new Date('2026-07-20T17:00:00Z'))).toBe(true); // exactly 60 min before
+    expect(isLocked(kickoff, new Date('2026-07-20T18:00:00Z'))).toBe(true); // kickoff
+    expect(isLocked(kickoff, new Date('2026-07-21T00:00:00Z'))).toBe(true); // after
   });
 });
 

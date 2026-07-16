@@ -33,6 +33,7 @@ export default async function Home() {
   return (
     <main>
       <h1>Etapa {round} <Link className="hist" href={`/etapa/${round}`}>istoric →</Link></h1>
+      <p className="notice">⏰ Pronosticurile se închid cu o oră înainte de fiecare meci.</p>
       {(matches ?? []).length === 0 && <p>Nu există meciuri încă. Adminul poate rula scraperul din pagina Admin.</p>}
       {(matches ?? []).map((m: Match) => {
         const canPredict = m.status === 'scheduled' && !isLocked(m.kickoff_at);

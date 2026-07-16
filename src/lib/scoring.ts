@@ -6,8 +6,10 @@ export function scorePrediction(pred: ScorePair, result: ScorePair): number {
   return 0;
 }
 
+export const LOCK_MINUTES = 60; // pronosticurile se închid cu atâtea minute înainte de kickoff
+
 export function isLocked(kickoffAt: string | Date, now: Date = new Date()): boolean {
-  return now.getTime() >= new Date(kickoffAt).getTime();
+  return now.getTime() >= new Date(kickoffAt).getTime() - LOCK_MINUTES * 60_000;
 }
 
 export function currentRound(matches: { round: number; status: string }[]): number {

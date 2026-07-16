@@ -292,6 +292,13 @@ nav a:active { transform: scale(.96); }
 }
 .preds p:first-child { font-weight: 700; }
 
+.notice {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: -8px 0 16px;
+}
+
 .muted { color: var(--muted); }
 .dim   { color: var(--dim); }
 .error { color: var(--err); font-size: 0.85rem; font-weight: 600; }

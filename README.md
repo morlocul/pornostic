@@ -1,7 +1,7 @@
 # ⚽ Pronosticuri Liga 1
 
 Aplicație de pronosticuri pentru SuperLiga României, pentru un grup de prieteni.
-Punctaj: 1X2 corect = 1 punct, scor exact = 2 puncte.
+Punctaj: 1X2 corect = 1 punct, scor exact = 2 puncte. Pronosticurile se închid cu o oră înainte de fiecare meci.
 
 ## Rulare locală
 
