@@ -26,6 +26,9 @@ describe('normalizeTeam', () => {
       ['FCSB', 'FCSB'],
       ['AFC Hermannstadt', 'Hermannstadt'],
       ['FC Botoșani', 'Botosani'],
+      ['Sepsi', 'Sepsi OSK'],
+      ['Hunedoara', 'Corvinul Hunedoara'],
+      ['Csíkszereda Miercurea Ciuc', 'FK Csikszereda Miercurea Ciuc'],
     ];
     for (const [a, b] of pairs) expect(normalizeTeam(a)).toBe(normalizeTeam(b));
   });
