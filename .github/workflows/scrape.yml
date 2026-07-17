@@ -1,7 +1,8 @@
 name: scrape
 on:
   schedule:
-    - cron: '0,30 10-21 * * *'  # every 30 min, 10:00–21:30 UTC (13:00–00:30 Romania)
+    - cron: '0,30 10-16 * * *'   # every 30 min, 13:00–19:30 Romania (pre-match window)
+    - cron: '*/10 17-21 * * *'   # every 10 min, 20:00–00:50 Romania (matches ending)
   workflow_dispatch:
 jobs:
   ping:
