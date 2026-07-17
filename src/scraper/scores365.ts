@@ -22,6 +22,8 @@ type S365Game = {
   startTime?: string;
   statusGroup?: number;
   statusText?: string;
+  gameTime?: number;
+  gameTimeDisplay?: string;
   homeCompetitor: S365Competitor;
   awayCompetitor: S365Competitor;
 };
@@ -114,6 +116,47 @@ export function parse365GameStatus(json: unknown): {
   return { finished, homeScore: score(game.homeCompetitor), awayScore: score(game.awayCompetitor) };
 }
 
+export type GameState = {
+  phase: 'scheduled' | 'live' | 'finished';
+  homeScore: number | null;
+  awayScore: number | null;
+  minute: string | null;
+  goals: MatchGoal[];
+};
+
+// Full state from the single-game endpoint, used for live tracking. VERIFIED
+// on 365Scores: statusGroup 4 (or statusText 'Ended') = finished with final
+// scores; statusGroup 2 = scheduled (scores -1). Live is coded defensively —
+// treated as live when NOT finished AND (statusGroup === 3, OR gameTime > 0,
+// OR statusText is a non-Scheduled/non-Ended active string like 'Halftime').
+// Scores are surfaced when live or finished (>= 0 guard); minute prefers
+// gameTimeDisplay ("67'"), falls back to statusText ("Halftime"), else null.
+// Goals are parsed from the same payload. Tolerates garbage → scheduled/nulls.
+export function parse365GameState(json: unknown): GameState {
+  const game = (json as { game?: S365Game } | null)?.game;
+  if (!game) return { phase: 'scheduled', homeScore: null, awayScore: null, minute: null, goals: [] };
+
+  const finished = game.statusGroup === 4 || game.statusText === 'Ended';
+  const gt = typeof game.gameTime === 'number' ? game.gameTime : -1;
+  const st = (game.statusText ?? '').trim();
+  const activeText = st !== '' && !/scheduled|postpon|cancel|abandon|suspend|ended/i.test(st);
+  const live = !finished && (game.statusGroup === 3 || gt > 0 || activeText);
+  const phase: GameState['phase'] = finished ? 'finished' : live ? 'live' : 'scheduled';
+
+  const scoreOf = (c?: S365Competitor) =>
+    (finished || live) && typeof c?.score === 'number' && c.score >= 0 ? Math.round(c.score) : null;
+  const gtd = (game.gameTimeDisplay ?? '').trim();
+  const minute = live ? (gtd !== '' ? gtd : st !== '' ? st : null) : null;
+
+  return {
+    phase,
+    homeScore: scoreOf(game.homeCompetitor),
+    awayScore: scoreOf(game.awayCompetitor),
+    minute,
+    goals: parse365Goals(json),
+  };
+}
+
 export async function fetchGameStatus(gameId: number): Promise<{
   finished: boolean;
   homeScore: number | null;
@@ -122,6 +165,12 @@ export async function fetchGameStatus(gameId: number): Promise<{
   const res = await fetch(GAME_URL(gameId), { headers: HEADERS, cache: 'no-store' });
   if (!res.ok) throw new Error(`scores365 game ${gameId}: HTTP ${res.status}`);
   return parse365GameStatus(await res.json());
+}
+
+export async function fetchGameState(gameId: number): Promise<GameState> {
+  const res = await fetch(GAME_URL(gameId), { headers: HEADERS, cache: 'no-store' });
+  if (!res.ok) throw new Error(`scores365 game ${gameId}: HTTP ${res.status}`);
+  return parse365GameState(await res.json());
 }
 
 async function fetchUrl(url: string): Promise<FetchedMatch[]> {

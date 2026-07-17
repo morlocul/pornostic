@@ -49,18 +49,21 @@ export default async function Home() {
                 <TeamLogo compId={m.home_comp_id} name={m.home_team} />
                 <span className="tname">{m.home_team}</span>
               </span>
-              <span className="vs">{m.status === 'finished' ? `${m.home_score} – ${m.away_score}` : fmt.format(new Date(m.kickoff_at))}</span>
+              <span className="vs">{m.status === 'finished' || m.status === 'live' ? `${m.home_score} – ${m.away_score}` : fmt.format(new Date(m.kickoff_at))}</span>
               <span className="team away">
                 <span className="tname">{m.away_team}</span>
                 <TeamLogo compId={m.away_comp_id} name={m.away_team} />
               </span>
             </div>
+            {m.status === 'live' && (
+              <div className="live-badge">LIVE{m.live_minute ? ` ${m.live_minute}` : ''}</div>
+            )}
             {m.status === 'postponed' && (
               <p className="muted">
                 {new Date(m.kickoff_at) > new Date() ? `Amânat până ${fmt.format(new Date(m.kickoff_at))}` : 'Amânat — dată nouă în curând'}
               </p>
             )}
-            {m.status === 'finished' && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
+            {(m.status === 'finished' || m.status === 'live') && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
             {canPredict && <PredictionForm matchId={m.id} initialHome={my?.home_score ?? null} initialAway={my?.away_score ?? null} />}
             {showOthers && (
               <div className="preds">

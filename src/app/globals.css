@@ -310,6 +310,41 @@ nav a:active { transform: scale(.96); }
 }
 .preds p:first-child { font-weight: 700; }
 
+/* ---------- Live badge (in-progress matches) ---------- */
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin: 10px auto 0;
+  padding: 3px 11px 3px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #ffd9d1;
+  background: rgba(255,60,45,.12);
+  border: 1px solid rgba(255,90,70,.42);
+  font-variant-numeric: tabular-nums;
+}
+.live-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff3b30;
+  box-shadow: 0 0 7px rgba(255,59,48,.9);
+  animation: livepulse 1.25s ease-in-out infinite;
+}
+@keyframes livepulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .3; transform: scale(.62); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-badge::before { animation: none; }
+}
+
 /* ---------- Goal scorers (finished matches) ---------- */
 .goals {
   margin-top: 12px;

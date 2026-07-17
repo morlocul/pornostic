@@ -13,7 +13,8 @@ export function isLocked(kickoffAt: string | Date, now: Date = new Date()): bool
 }
 
 export function currentRound(matches: { round: number; status: string }[]): number {
-  const open = matches.filter((m) => m.status === 'scheduled');
+  // A live match keeps its round open/current, same as a scheduled one.
+  const open = matches.filter((m) => m.status === 'scheduled' || m.status === 'live');
   if (open.length) return Math.min(...open.map((m) => m.round));
   if (matches.length) return Math.max(...matches.map((m) => m.round));
   return 1;

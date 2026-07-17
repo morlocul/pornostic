@@ -45,13 +45,16 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
                 <TeamLogo compId={m.home_comp_id} name={m.home_team} />
                 <span className="tname">{m.home_team}</span>
               </span>
-              <span className="vs">{m.status === 'finished' ? `${m.home_score} – ${m.away_score}` : m.status === 'postponed' ? (new Date(m.kickoff_at) > new Date() ? `Amânat până ${fmt.format(new Date(m.kickoff_at))}` : 'Amânat') : fmt.format(new Date(m.kickoff_at))}</span>
+              <span className="vs">{m.status === 'finished' || m.status === 'live' ? `${m.home_score} – ${m.away_score}` : m.status === 'postponed' ? (new Date(m.kickoff_at) > new Date() ? `Amânat până ${fmt.format(new Date(m.kickoff_at))}` : 'Amânat') : fmt.format(new Date(m.kickoff_at))}</span>
               <span className="team away">
                 <span className="tname">{m.away_team}</span>
                 <TeamLogo compId={m.away_comp_id} name={m.away_team} />
               </span>
             </div>
-            {m.status === 'finished' && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
+            {m.status === 'live' && (
+              <div className="live-badge">LIVE{m.live_minute ? ` ${m.live_minute}` : ''}</div>
+            )}
+            {(m.status === 'finished' || m.status === 'live') && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
             <div className="preds">
               {!visible && <p className="muted">Pronosticurile devin vizibile cu o oră înainte de meci.</p>}
               {visible && mPreds.length === 0 && <p className="muted">Niciun pronostic.</p>}

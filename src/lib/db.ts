@@ -12,7 +12,8 @@ export type MatchGoal = {
 export type Match = {
   id: string; season: string; round: number;
   home_team: string; away_team: string; home_key: string; away_key: string;
-  kickoff_at: string; status: 'scheduled' | 'finished' | 'postponed';
+  kickoff_at: string; status: 'scheduled' | 'live' | 'finished' | 'postponed';
+  live_minute: string | null;     // in-play display, e.g. "67'" or "Halftime"; null off-play
   home_score: number | null; away_score: number | null;
   source: 'scraper' | 'manual'; locked_manual: boolean;
   goals: MatchGoal[] | null;      // null = never fetched; [] = fetched, 0-0

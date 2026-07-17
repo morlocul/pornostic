@@ -18,7 +18,8 @@ create table matches (
   home_key text not null,
   away_key text not null,
   kickoff_at timestamptz not null,
-  status text not null default 'scheduled' check (status in ('scheduled','finished','postponed')),
+  status text not null default 'scheduled' check (status in ('scheduled','live','finished','postponed')),
+  live_minute text,     -- in-play minute display (e.g. "67'" or "Halftime"); null when not live
   home_score int,
   away_score int,
   source text not null default 'scraper' check (source in ('scraper','manual')),

@@ -38,6 +38,13 @@ describe('currentRound', () => {
       { round: 2, status: 'scheduled' }, { round: 3, status: 'scheduled' },
     ])).toBe(2);
   });
+  it('counts a live match as open — lowest round with only live+finished is current', () => {
+    expect(currentRound([
+      { round: 2, status: 'live' }, { round: 2, status: 'live' },
+      { round: 2, status: 'finished' }, { round: 2, status: 'live' },
+      { round: 3, status: 'scheduled' },
+    ])).toBe(2);
+  });
   it('falls back to the highest round when everything finished', () => {
     expect(currentRound([
       { round: 1, status: 'finished' }, { round: 2, status: 'finished' },

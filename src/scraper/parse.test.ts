@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { parseSofascoreEvents } from './sofascore';
 import { parseTsdbEvents } from './thesportsdb';
-import { parse365Games, parse365Goals, parse365GameStatus } from './scores365';
+import { parse365Games, parse365Goals, parse365GameStatus, parse365GameState } from './scores365';
 import { S365_SEASON_NUM } from '@/lib/config';
 
 const fixture = (f: string) =>
@@ -191,5 +191,91 @@ describe('parse365GameStatus', () => {
     const empty = { finished: false, homeScore: null, awayScore: null };
     expect(parse365GameStatus({})).toEqual(empty);
     expect(parse365GameStatus(null)).toEqual(empty);
+  });
+});
+
+describe('parse365GameState', () => {
+  it('reads an ended game (statusGroup 4): finished, final scores, no minute', () => {
+    const s = parse365GameState({
+      game: {
+        statusGroup: 4,
+        statusText: 'Ended',
+        homeCompetitor: { score: 3 },
+        awayCompetitor: { score: 1 },
+      },
+    });
+    expect(s.phase).toBe('finished');
+    expect(s.homeScore).toBe(3);
+    expect(s.awayScore).toBe(1);
+    expect(s.minute).toBeNull();
+    expect(s.goals).toEqual([]);
+  });
+
+  it('reads a live game (statusGroup 3 + gameTimeDisplay + partial score + events)', () => {
+    const s = parse365GameState({
+      game: {
+        statusGroup: 3,
+        statusText: '2nd Half',
+        gameTime: 67,
+        gameTimeDisplay: "67'",
+        homeCompetitor: { id: 10, score: 1 },
+        awayCompetitor: { id: 20, score: 0 },
+        members: [{ id: 99, name: 'Ionut Pop' }],
+        events: [
+          {
+            competitorId: 10,
+            gameTime: 34,
+            gameTimeDisplay: "34'",
+            playerId: 99,
+            eventType: { name: 'Goal', subTypeName: null },
+          },
+        ],
+      },
+    });
+    expect(s.phase).toBe('live');
+    expect(s.homeScore).toBe(1);
+    expect(s.awayScore).toBe(0);
+    expect(s.minute).toBe("67'");
+    expect(s.goals).toHaveLength(1);
+    expect(s.goals[0]).toEqual({ min: "34'", player: 'Ionut Pop', side: 'home', kind: 'goal' });
+  });
+
+  it('reads a scheduled game (-1 scores): scheduled, null scores/minute', () => {
+    const s = parse365GameState({
+      game: {
+        statusGroup: 2,
+        statusText: 'Scheduled',
+        gameTime: -1,
+        homeCompetitor: { score: -1 },
+        awayCompetitor: { score: -1 },
+      },
+    });
+    expect(s.phase).toBe('scheduled');
+    expect(s.homeScore).toBeNull();
+    expect(s.awayScore).toBeNull();
+    expect(s.minute).toBeNull();
+  });
+
+  it('reads halftime (gameTime > 0, empty gameTimeDisplay) → minute from statusText', () => {
+    const s = parse365GameState({
+      game: {
+        statusGroup: 3,
+        statusText: 'Halftime',
+        gameTime: 45,
+        gameTimeDisplay: '',
+        homeCompetitor: { score: 2 },
+        awayCompetitor: { score: 2 },
+      },
+    });
+    expect(s.phase).toBe('live');
+    expect(s.homeScore).toBe(2);
+    expect(s.awayScore).toBe(2);
+    expect(s.minute).toBe('Halftime');
+  });
+
+  it('tolerates garbage input', () => {
+    const empty = { phase: 'scheduled', homeScore: null, awayScore: null, minute: null, goals: [] };
+    expect(parse365GameState({})).toEqual(empty);
+    expect(parse365GameState(null)).toEqual(empty);
   });
 });

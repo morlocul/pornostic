@@ -3,7 +3,7 @@ import { SEASON } from '@/lib/config';
 import { normalizeTeam } from '@/lib/teams';
 import { recomputePoints } from '@/lib/recompute';
 import { FetchedMatch, ScrapeSource } from './types';
-import { scores365, fetchGameGoals, fetchGameStatus } from './scores365';
+import { scores365, fetchGameGoals, fetchGameState } from './scores365';
 import { sofascore } from './sofascore';
 import { thesportsdb } from './thesportsdb';
 
@@ -18,6 +18,18 @@ async function upsertMatches(fetched: FetchedMatch[]): Promise<number> {
     .eq('locked_manual', true);
   if (lockErr) throw new Error(lockErr.message);
   const lockedSet = new Set((locked ?? []).map((m) => `${m.round}|${m.home_key}`));
+
+  // A match currently 'live' (set by the match-window sweep off the per-game
+  // endpoint) must NOT be stomped back to 'scheduled' by the list feed, which
+  // may still show it scheduled or omit it mid-play. Its finished signal
+  // arrives via the sweep. Same exclusion style as locked_manual.
+  const { data: liveRows, error: liveErr } = await db()
+    .from('matches')
+    .select('round, home_key')
+    .eq('season', SEASON)
+    .eq('status', 'live');
+  if (liveErr) throw new Error(liveErr.message);
+  const liveSet = new Set((liveRows ?? []).map((m) => `${m.round}|${m.home_key}`));
 
   const rows = fetched
     .map((m) => ({
@@ -36,7 +48,10 @@ async function upsertMatches(fetched: FetchedMatch[]): Promise<number> {
       ...(m.homeCompId != null ? { home_comp_id: m.homeCompId } : {}),
       ...(m.awayCompId != null ? { away_comp_id: m.awayCompId } : {}),
     }))
-    .filter((r) => !lockedSet.has(`${r.round}|${r.home_key}`));
+    .filter((r) => {
+      const key = `${r.round}|${r.home_key}`;
+      return !lockedSet.has(key) && !liveSet.has(key);
+    });
 
   // Dedupe within the batch (same match can appear on two pages) — Postgres
   // rejects an upsert that touches the same row twice in one statement.
@@ -78,42 +93,67 @@ async function fillGoals(limit = 8): Promise<number> {
   return filled;
 }
 
-// Best-effort "overdue sweep": 365Scores list endpoints have a transition
-// window where a just-ended match has left /fixtures/ but not yet appeared in
-// /results/, so fetchSeason() can't see its final score. The per-game endpoint
-// has the truth immediately — poll it for matches that should be over by now.
-// Never throws; individual game failures are skipped and retried next run.
-async function sweepOverdue(limit = 5): Promise<number> {
-  // A football match lasts ~105 min incl. halftime; anything kicked off before
-  // that is due to be finished.
-  const cutoff = new Date(Date.now() - 105 * 60 * 1000).toISOString();
+// Best-effort "match-window sweep": for matches that should be in progress or
+// just ended (kicked off within the last ~150 min), poll the per-game endpoint
+// — its state is live immediately, unlike the list feed which lags behind at
+// the scheduled→live→finished transitions. Updates in-play score/minute/goals
+// while live and finalizes when ended. Never throws; per-game failures are
+// skipped and retried next run.
+async function sweepMatchWindow(limit = 8): Promise<{ live: number; finalized: number }> {
+  const now = Date.now();
+  const from = new Date(now - 150 * 60 * 1000).toISOString();
+  const to = new Date(now).toISOString();
   const { data, error } = await db()
     .from('matches')
     .select('id, source_game_id')
     .eq('season', SEASON)
-    .eq('status', 'scheduled')
     .eq('locked_manual', false)
     .not('source_game_id', 'is', null)
-    .lt('kickoff_at', cutoff)
+    .in('status', ['scheduled', 'live'])
+    .gte('kickoff_at', from)
+    .lte('kickoff_at', to)
     .limit(limit);
   if (error) throw new Error(error.message);
-  let updated = 0;
+  let live = 0;
+  let finalized = 0;
   for (const m of data ?? []) {
     try {
-      const st = await fetchGameStatus(m.source_game_id as number);
-      if (st.finished && st.homeScore != null && st.awayScore != null) {
+      const st = await fetchGameState(m.source_game_id as number);
+      if (st.phase === 'finished' && st.homeScore != null && st.awayScore != null) {
+        // Single write: final scores, clear the minute, goals from this payload
+        // (no separate goals fetch needed for matches finalized here).
         const { error: upErr } = await db()
           .from('matches')
-          .update({ status: 'finished', home_score: st.homeScore, away_score: st.awayScore })
+          .update({
+            status: 'finished',
+            home_score: st.homeScore,
+            away_score: st.awayScore,
+            live_minute: null,
+            goals: st.goals,
+          })
           .eq('id', m.id);
         if (upErr) throw new Error(upErr.message);
-        updated += 1;
+        finalized += 1;
+      } else if (st.phase === 'live' && st.homeScore != null && st.awayScore != null) {
+        const { error: upErr } = await db()
+          .from('matches')
+          .update({
+            status: 'live',
+            home_score: st.homeScore,
+            away_score: st.awayScore,
+            live_minute: st.minute,
+            goals: st.goals,
+          })
+          .eq('id', m.id);
+        if (upErr) throw new Error(upErr.message);
+        live += 1;
       }
+      // phase 'scheduled' → leave untouched
     } catch {
       // one game failed — skip silently, retried next run
     }
   }
-  return updated;
+  return { live, finalized };
 }
 
 export async function runScrape(): Promise<{ ok: boolean; source: string; upserted: number; message: string }> {
@@ -127,10 +167,13 @@ export async function runScrape(): Promise<{ ok: boolean; source: string; upsert
         await db().from('scrape_runs').insert({ source: source.name, ok: true, message: result.message, upserted });
       } catch { /* logging is best-effort */ }
       try {
-        const recovered = await sweepOverdue();
-        if (recovered > 0) result.message += `; recuperate: ${recovered}`;
+        const swept = await sweepMatchWindow();
+        const bits: string[] = [];
+        if (swept.live > 0) bits.push(`live: ${swept.live}`);
+        if (swept.finalized > 0) bits.push(`finalizate: ${swept.finalized}`);
+        if (bits.length) result.message += `; ${bits.join(', ')}`;
       } catch {
-        // overdue sweep is best-effort — must never fail the run
+        // match-window sweep is best-effort — must never fail the run
       }
       try {
         await recomputePoints();
