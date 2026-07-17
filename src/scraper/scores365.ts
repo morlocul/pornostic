@@ -98,6 +98,32 @@ export async function fetchGameGoals(gameId: number): Promise<MatchGoal[]> {
   return parse365Goals(await res.json());
 }
 
+// Reads the single-game endpoint's truth: a match is finished when
+// statusGroup === 4 (or statusText 'Ended'); scores are plain numbers, -1
+// until played. Tolerates missing/malformed input → not finished, null scores.
+export function parse365GameStatus(json: unknown): {
+  finished: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
+} {
+  const game = (json as { game?: S365Game } | null)?.game;
+  if (!game) return { finished: false, homeScore: null, awayScore: null };
+  const finished = game.statusGroup === 4 || game.statusText === 'Ended';
+  const score = (c?: S365Competitor) =>
+    finished && typeof c?.score === 'number' && c.score >= 0 ? Math.round(c.score) : null;
+  return { finished, homeScore: score(game.homeCompetitor), awayScore: score(game.awayCompetitor) };
+}
+
+export async function fetchGameStatus(gameId: number): Promise<{
+  finished: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
+}> {
+  const res = await fetch(GAME_URL(gameId), { headers: HEADERS, cache: 'no-store' });
+  if (!res.ok) throw new Error(`scores365 game ${gameId}: HTTP ${res.status}`);
+  return parse365GameStatus(await res.json());
+}
+
 async function fetchUrl(url: string): Promise<FetchedMatch[]> {
   const res = await fetch(url, { headers: HEADERS, cache: 'no-store' });
   if (!res.ok) throw new Error(`scores365 ${url}: HTTP ${res.status}`);

@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { parseSofascoreEvents } from './sofascore';
 import { parseTsdbEvents } from './thesportsdb';
-import { parse365Games, parse365Goals } from './scores365';
+import { parse365Games, parse365Goals, parse365GameStatus } from './scores365';
 import { S365_SEASON_NUM } from '@/lib/config';
 
 const fixture = (f: string) =>
@@ -136,5 +136,60 @@ describe('parse365Goals', () => {
   });
   it('tolerates an empty game object', () => {
     expect(parse365Goals({ game: {} })).toEqual([]);
+  });
+});
+
+describe('parse365GameStatus', () => {
+  it('reads an ended game (statusGroup 4) with its scores', () => {
+    expect(
+      parse365GameStatus({
+        game: {
+          statusGroup: 4,
+          statusText: 'Ended',
+          homeCompetitor: { score: 2 },
+          awayCompetitor: { score: 2 },
+        },
+      }),
+    ).toEqual({ finished: true, homeScore: 2, awayScore: 2 });
+  });
+  it('treats statusText "Ended" as finished even without statusGroup 4', () => {
+    expect(
+      parse365GameStatus({
+        game: {
+          statusText: 'Ended',
+          homeCompetitor: { score: 1 },
+          awayCompetitor: { score: 0 },
+        },
+      }),
+    ).toEqual({ finished: true, homeScore: 1, awayScore: 0 });
+  });
+  it('does not report scores for an in-progress game (scores present but not finished)', () => {
+    expect(
+      parse365GameStatus({
+        game: {
+          statusGroup: 2,
+          statusText: 'Live',
+          homeCompetitor: { score: 1 },
+          awayCompetitor: { score: 0 },
+        },
+      }),
+    ).toEqual({ finished: false, homeScore: null, awayScore: null });
+  });
+  it('nulls scores for a not-started game (-1 scores)', () => {
+    expect(
+      parse365GameStatus({
+        game: {
+          statusGroup: 1,
+          statusText: 'Scheduled',
+          homeCompetitor: { score: -1 },
+          awayCompetitor: { score: -1 },
+        },
+      }),
+    ).toEqual({ finished: false, homeScore: null, awayScore: null });
+  });
+  it('tolerates garbage input', () => {
+    const empty = { finished: false, homeScore: null, awayScore: null };
+    expect(parse365GameStatus({})).toEqual(empty);
+    expect(parse365GameStatus(null)).toEqual(empty);
   });
 });

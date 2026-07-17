@@ -3,7 +3,7 @@ import { SEASON } from '@/lib/config';
 import { normalizeTeam } from '@/lib/teams';
 import { recomputePoints } from '@/lib/recompute';
 import { FetchedMatch, ScrapeSource } from './types';
-import { scores365, fetchGameGoals } from './scores365';
+import { scores365, fetchGameGoals, fetchGameStatus } from './scores365';
 import { sofascore } from './sofascore';
 import { thesportsdb } from './thesportsdb';
 
@@ -78,6 +78,44 @@ async function fillGoals(limit = 8): Promise<number> {
   return filled;
 }
 
+// Best-effort "overdue sweep": 365Scores list endpoints have a transition
+// window where a just-ended match has left /fixtures/ but not yet appeared in
+// /results/, so fetchSeason() can't see its final score. The per-game endpoint
+// has the truth immediately — poll it for matches that should be over by now.
+// Never throws; individual game failures are skipped and retried next run.
+async function sweepOverdue(limit = 5): Promise<number> {
+  // A football match lasts ~105 min incl. halftime; anything kicked off before
+  // that is due to be finished.
+  const cutoff = new Date(Date.now() - 105 * 60 * 1000).toISOString();
+  const { data, error } = await db()
+    .from('matches')
+    .select('id, source_game_id')
+    .eq('season', SEASON)
+    .eq('status', 'scheduled')
+    .eq('locked_manual', false)
+    .not('source_game_id', 'is', null)
+    .lt('kickoff_at', cutoff)
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  let updated = 0;
+  for (const m of data ?? []) {
+    try {
+      const st = await fetchGameStatus(m.source_game_id as number);
+      if (st.finished && st.homeScore != null && st.awayScore != null) {
+        const { error: upErr } = await db()
+          .from('matches')
+          .update({ status: 'finished', home_score: st.homeScore, away_score: st.awayScore })
+          .eq('id', m.id);
+        if (upErr) throw new Error(upErr.message);
+        updated += 1;
+      }
+    } catch {
+      // one game failed — skip silently, retried next run
+    }
+  }
+  return updated;
+}
+
 export async function runScrape(): Promise<{ ok: boolean; source: string; upserted: number; message: string }> {
   for (const source of SOURCES) {
     try {
@@ -88,6 +126,12 @@ export async function runScrape(): Promise<{ ok: boolean; source: string; upsert
       try {
         await db().from('scrape_runs').insert({ source: source.name, ok: true, message: result.message, upserted });
       } catch { /* logging is best-effort */ }
+      try {
+        const recovered = await sweepOverdue();
+        if (recovered > 0) result.message += `; recuperate: ${recovered}`;
+      } catch {
+        // overdue sweep is best-effort — must never fail the run
+      }
       try {
         await recomputePoints();
       } catch (err) {
