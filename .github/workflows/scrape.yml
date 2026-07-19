@@ -1,15 +1,26 @@
 name: scrape
 on:
   schedule:
-    - cron: '0,30 10-16 * * *'   # every 30 min, 13:00–19:30 Romania (pre-match window)
-    - cron: '*/10 17-21 * * *'   # every 10 min, 20:00–00:50 Romania (matches ending)
+    # GitHub coalesces short intervals (*/10 fires ~hourly), so instead we
+    # trigger hourly across the match window and self-loop inside each run to
+    # get a real ~10-minute cadence. Repo is public → Actions minutes are free.
+    - cron: '0 9-22 * * *'   # top of each hour, 12:00–01:00 Romania
   workflow_dispatch:
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
-      - run: |
-          curl -sf -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.APP_URL }}/api/cron/scrape"
-
-# Pornostic scraper schedule
+      - name: Scrape every 10 minutes for ~1 hour
+        run: |
+          for i in $(seq 1 6); do
+            echo "ping $i/6 at $(date -u '+%H:%M:%S') UTC"
+            curl -sf -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ vars.APP_URL }}/api/cron/scrape" -o /dev/null && echo "  ok" || echo "  failed (nonfatal)"
+            if [ "$i" -lt 6 ]; then sleep 600; fi
+          done
