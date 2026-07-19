@@ -93,15 +93,20 @@ async function fillGoals(limit = 8): Promise<number> {
   return filled;
 }
 
-// Best-effort "match-window sweep": for matches that should be in progress or
-// just ended (kicked off within the last ~150 min), poll the per-game endpoint
-// — its state is live immediately, unlike the list feed which lags behind at
-// the scheduled→live→finished transitions. Updates in-play score/minute/goals
-// while live and finalizes when ended. Never throws; per-game failures are
-// skipped and retried next run.
-async function sweepMatchWindow(limit = 8): Promise<{ live: number; finalized: number }> {
+// Best-effort "match-window sweep": poll the per-game endpoint — its state is
+// live immediately, unlike the list feed which lags behind at the
+// scheduled→live→finished transitions. Updates in-play score/minute/goals while
+// live and finalizes when ended. Never throws; per-game failures are skipped
+// and retried next run.
+//
+// A match already 'live' is chased on EVERY run with NO age cap, so it can
+// never stay stuck live if a scrape misses the moment it ended (the bug that
+// froze Craiova–UTA at "89'" for 16h when cron ran only hourly). Matches still
+// 'scheduled' are checked within a generous post-kickoff window (6h) so even a
+// sparse/unreliable cron finalizes them.
+async function sweepMatchWindow(limit = 12): Promise<{ live: number; finalized: number }> {
   const now = Date.now();
-  const from = new Date(now - 150 * 60 * 1000).toISOString();
+  const from = new Date(now - 360 * 60 * 1000).toISOString();
   const to = new Date(now).toISOString();
   const { data, error } = await db()
     .from('matches')
@@ -109,9 +114,8 @@ async function sweepMatchWindow(limit = 8): Promise<{ live: number; finalized: n
     .eq('season', SEASON)
     .eq('locked_manual', false)
     .not('source_game_id', 'is', null)
-    .in('status', ['scheduled', 'live'])
-    .gte('kickoff_at', from)
-    .lte('kickoff_at', to)
+    .or(`status.eq.live,and(status.eq.scheduled,kickoff_at.gte.${from},kickoff_at.lte.${to})`)
+    .order('kickoff_at', { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
   let live = 0;
