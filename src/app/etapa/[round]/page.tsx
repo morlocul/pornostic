@@ -56,7 +56,7 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
             )}
             {(m.status === 'finished' || m.status === 'live') && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
             <div className="preds">
-              {!visible && <p className="muted">Pronosticurile devin vizibile cu o oră înainte de meci.</p>}
+              {!visible && <p className="muted">Pronosticurile devin vizibile la începerea meciului.</p>}
               {visible && mPreds.length === 0 && <p className="muted">Niciun pronostic.</p>}
               {visible && mPreds.map((p) => (
                 <p key={p.id} className={p.points === 2 ? 'ok' : undefined}>

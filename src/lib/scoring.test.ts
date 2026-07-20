@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scorePrediction, isLocked, currentRound } from './scoring';
+import { scorePrediction, isLocked, currentRound, LOCK_MINUTES } from './scoring';
 
 describe('scorePrediction', () => {
   it('exact score = 2 points', () => {
@@ -19,14 +19,15 @@ describe('scorePrediction', () => {
 });
 
 describe('isLocked', () => {
-  const kickoff = '2026-07-20T18:00:00Z';
-  it('open until 60 minutes before kickoff', () => {
-    // 61 min before → still open
-    expect(isLocked(kickoff, new Date('2026-07-20T16:59:00Z'))).toBe(false);
+  const kickoff = new Date('2026-07-20T18:00:00Z');
+  const ms = (minsBefore: number) => new Date(kickoff.getTime() - minsBefore * 60_000);
+  it(`open until ${LOCK_MINUTES} minute(s) before kickoff`, () => {
+    // one minute earlier than the lock boundary → still open
+    expect(isLocked(kickoff, ms(LOCK_MINUTES + 1))).toBe(false);
   });
-  it('locked from 60 minutes before, at kickoff, and after', () => {
-    expect(isLocked(kickoff, new Date('2026-07-20T17:00:00Z'))).toBe(true); // exactly 60 min before
-    expect(isLocked(kickoff, new Date('2026-07-20T18:00:00Z'))).toBe(true); // kickoff
+  it(`locked from ${LOCK_MINUTES} minute(s) before, at kickoff, and after`, () => {
+    expect(isLocked(kickoff, ms(LOCK_MINUTES))).toBe(true); // exactly at the boundary
+    expect(isLocked(kickoff, ms(0))).toBe(true); // kickoff
     expect(isLocked(kickoff, new Date('2026-07-21T00:00:00Z'))).toBe(true); // after
   });
 });
