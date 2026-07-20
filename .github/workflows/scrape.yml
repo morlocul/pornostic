@@ -1,26 +1,33 @@
 name: scrape
 on:
   schedule:
-    # GitHub coalesces short intervals (*/10 fires ~hourly), so instead we
-    # trigger hourly across the match window and self-loop inside each run to
-    # get a real ~10-minute cadence. Repo is public → Actions minutes are free.
-    - cron: '0 9-22 * * *'   # top of each hour, 12:00–01:00 Romania
+    # GitHub fires scheduled triggers sparsely and late (~every 2h, not hourly),
+    # so we DON'T rely on frequent triggers. Instead each run self-loops every
+    # 10 min for ~6 hours, so a single fired trigger covers a whole match block.
+    # Two triggers/day (with queuing below) cover ~15:00–02:50 Romania. Repo is
+    # public → Actions minutes are free, so long jobs cost nothing.
+    - cron: '0 12 * * *'   # ~15:00 Romania — afternoon/early-evening block
+    - cron: '0 18 * * *'   # ~21:00 Romania — late-evening/night block
   workflow_dispatch:
 
 concurrency:
   group: scrape
-  cancel-in-progress: false
+  cancel-in-progress: false   # a second trigger queues, then runs back-to-back
 
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 355   # just under GitHub's 6h hard cap
     steps:
-      - name: Scrape every 10 minutes for ~1 hour
+      - name: Scrape every 10 minutes for ~6 hours
         run: |
-          for i in $(seq 1 6); do
-            echo "ping $i/6 at $(date -u '+%H:%M:%S') UTC"
-            curl -sf -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              "${{ vars.APP_URL }}/api/cron/scrape" -o /dev/null && echo "  ok" || echo "  failed (nonfatal)"
-            if [ "$i" -lt 6 ]; then sleep 600; fi
+          end=$(( $(date +%s) + 350*60 ))
+          i=0
+          while [ "$(date +%s)" -lt "$end" ]; do
+            i=$((i+1))
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ vars.APP_URL }}/api/cron/scrape" || echo 000)
+            echo "ping $i at $(date -u '+%H:%M:%S')Z -> HTTP $code"
+            sleep 600
           done
