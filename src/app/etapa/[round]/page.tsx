@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { db, Match } from '@/lib/db';
 import { getSession } from '@/lib/session';
-import { isLocked } from '@/lib/scoring';
+import { hasStarted } from '@/lib/scoring';
 import { SEASON, SHOW_ALL_PREDICTIONS } from '@/lib/config';
 import GoalsList from '../../GoalsList';
 import TeamLogo from '../../TeamLogo';
@@ -25,6 +25,8 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
   const { data: preds } = ids.length
     ? await db().from('predictions').select('*, players(name, nickname)').in('match_id', ids)
     : { data: [] };
+  const { data: roster } = await db().from('players').select('id, name, nickname').order('created_at');
+  const players = roster ?? [];
 
   return (
     <main>
@@ -36,8 +38,10 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
         </span>
       </h1>
       {(matches ?? []).map((m: Match) => {
-        const visible = SHOW_ALL_PREDICTIONS || isLocked(m.kickoff_at);
+        const revealScores = SHOW_ALL_PREDICTIONS || m.status === 'live' || m.status === 'finished' || hasStarted(m.kickoff_at);
         const mPreds = (preds ?? []).filter((p) => p.match_id === m.id);
+        const predictedIds = new Set(mPreds.map((p) => p.player_id));
+        const missing = players.filter((pl) => !predictedIds.has(pl.id));
         return (
           <div className="card" key={m.id}>
             <div className="teams">
@@ -56,12 +60,18 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
             )}
             {(m.status === 'finished' || m.status === 'live') && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
             <div className="preds">
-              {!visible && <p className="muted">Pronosticurile devin vizibile la începerea meciului.</p>}
-              {visible && mPreds.length === 0 && <p className="muted">Niciun pronostic.</p>}
-              {visible && mPreds.map((p) => (
+              {!revealScores && <p className="muted">Scorurile se dezvăluie la începerea meciului. Până atunci se vede doar cine a pus.</p>}
+              {revealScores && mPreds.length === 0 && <p className="muted">Niciun pronostic.</p>}
+              {revealScores && mPreds.map((p) => (
                 <p key={p.id} className={p.points === 2 ? 'ok' : undefined}>
                   {p.players.nickname ?? p.players.name}: {p.home_score}–{p.away_score}{p.points != null && ` (${p.points}p)`}
                 </p>
+              ))}
+              {!revealScores && mPreds.map((p) => (
+                <p key={p.id} className="muted">{p.players.nickname ?? p.players.name}: ✓ a pus</p>
+              ))}
+              {!revealScores && missing.map((pl) => (
+                <p key={pl.id} className="muted pending">{pl.nickname ?? pl.name}: ⏳ n-a pus încă</p>
               ))}
             </div>
           </div>

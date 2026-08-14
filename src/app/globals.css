@@ -309,6 +309,7 @@ nav a:active { transform: scale(.96); }
   gap: 4px;
 }
 .preds p:first-child { font-weight: 700; }
+.preds p.pending { color: #d9a441; opacity: 0.85; }
 
 /* ---------- Live badge (in-progress matches) ---------- */
 .live-badge {

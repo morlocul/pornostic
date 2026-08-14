@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { db, Match, Prediction } from '@/lib/db';
 import { getSession } from '@/lib/session';
-import { currentRound, isLocked, visibleRoundMatches } from '@/lib/scoring';
+import { currentRound, isLocked, hasStarted, visibleRoundMatches } from '@/lib/scoring';
 import { SEASON, SHOW_ALL_PREDICTIONS } from '@/lib/config';
 import PredictionForm from './PredictionForm';
 import GoalsList from './GoalsList';
@@ -33,18 +33,27 @@ export default async function Home() {
     ? await db().from('predictions').select('*, players(name, nickname)').in('match_id', matchIds)
     : { data: [] as (Prediction & { players: { name: string; nickname: string | null } })[] };
 
+  // Full roster so we can show who has NOT predicted yet (to nudge them).
+  const { data: roster } = await db().from('players').select('id, name, nickname').order('created_at');
+  const players = roster ?? [];
+
   const mine = new Map((preds ?? []).filter((p) => p.player_id === session.playerId).map((p) => [p.match_id, p]));
 
   return (
     <main>
       <h1>Etapa {round} <Link className="hist" href={`/etapa/${round}`}>istoric →</Link></h1>
-      <p className="notice">⏰ Pronosticurile se pot modifica până chiar înainte de începerea fiecărui meci.</p>
+      <p className="notice">⏰ Pronosticurile se pot modifica până chiar înainte de începerea meciului. Scorurile celorlalți sunt ascunse până la fluierul de start — se vede doar cine a pus și cine încă n-a pus.</p>
       {(matches ?? []).length === 0 && <p>Nu există meciuri încă. Adminul poate rula scraperul din pagina Admin.</p>}
       {(matches ?? []).map((m: Match) => {
         const canPredict = m.status === 'scheduled' && !isLocked(m.kickoff_at);
-        const showOthers = SHOW_ALL_PREDICTIONS || isLocked(m.kickoff_at);
+        // Reveal everyone's predicted SCORES only once the match starts (or is live/
+        // finished). Before that, only who-has-predicted is shown.
+        const revealScores = SHOW_ALL_PREDICTIONS || m.status === 'live' || m.status === 'finished' || hasStarted(m.kickoff_at);
         const my = mine.get(m.id);
-        const others = (preds ?? []).filter((p) => p.match_id === m.id && p.player_id !== session.playerId);
+        const matchPreds = (preds ?? []).filter((p) => p.match_id === m.id);
+        const predictedIds = new Set(matchPreds.map((p) => p.player_id));
+        const others = matchPreds.filter((p) => p.player_id !== session.playerId);
+        const missing = players.filter((pl) => !predictedIds.has(pl.id) && pl.id !== session.playerId);
         return (
           <div className="card" key={m.id}>
             <div className="teams">
@@ -68,14 +77,19 @@ export default async function Home() {
             )}
             {(m.status === 'finished' || m.status === 'live') && Array.isArray(m.goals) && m.goals.length > 0 && <GoalsList goals={m.goals} />}
             {canPredict && <PredictionForm matchId={m.id} initialHome={my?.home_score ?? null} initialAway={my?.away_score ?? null} />}
-            {showOthers && (
-              <div className="preds">
-                <p>{my ? `Tu: ${my.home_score}–${my.away_score}` : 'Tu: fără pronostic'}{my?.points != null && ` (${my.points}p)`}</p>
-                {others.map((p) => (
-                  <p key={p.id} className="muted">{p.players.nickname ?? p.players.name}: {p.home_score}–{p.away_score}{p.points != null && ` (${p.points}p)`}</p>
-                ))}
-              </div>
-            )}
+            <div className="preds">
+              <p>{my ? `Tu: ${my.home_score}–${my.away_score}` : 'Tu: fără pronostic'}{my?.points != null && ` (${my.points}p)`}</p>
+              {others.map((p) => (
+                <p key={p.id} className="muted">
+                  {p.players.nickname ?? p.players.name}: {revealScores
+                    ? `${p.home_score}–${p.away_score}${p.points != null ? ` (${p.points}p)` : ''}`
+                    : '✓ a pus'}
+                </p>
+              ))}
+              {!revealScores && missing.map((pl) => (
+                <p key={pl.id} className="muted pending">{pl.nickname ?? pl.name}: ⏳ n-a pus încă</p>
+              ))}
+            </div>
           </div>
         );
       })}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  scorePrediction, isLocked, currentRound, LOCK_MINUTES,
+  scorePrediction, isLocked, hasStarted, currentRound, LOCK_MINUTES,
   visibleRoundMatches, partitionRoundMatches,
 } from './scoring';
 
@@ -32,6 +32,17 @@ describe('isLocked', () => {
     expect(isLocked(kickoff, ms(LOCK_MINUTES))).toBe(true); // exactly at the boundary
     expect(isLocked(kickoff, ms(0))).toBe(true); // kickoff
     expect(isLocked(kickoff, new Date('2026-07-21T00:00:00Z'))).toBe(true); // after
+  });
+});
+
+describe('hasStarted (reveal other players scores at kickoff)', () => {
+  const kickoff = new Date('2026-08-14T15:30:00Z');
+  it('false one second before kickoff', () => {
+    expect(hasStarted(kickoff, new Date('2026-08-14T15:29:59Z'))).toBe(false);
+  });
+  it('true exactly at kickoff and after', () => {
+    expect(hasStarted(kickoff, kickoff)).toBe(true);
+    expect(hasStarted(kickoff, new Date('2026-08-14T16:00:00Z'))).toBe(true);
   });
 });
 

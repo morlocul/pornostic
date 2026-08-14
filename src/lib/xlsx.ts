@@ -1,7 +1,7 @@
 // Formatted Excel (.xlsx) export for the game database.
 // Pure given its inputs (no DB access) so it can be unit-tested and reused.
 import ExcelJS from 'exceljs';
-import { isLocked } from '@/lib/scoring';
+import { hasStarted } from '@/lib/scoring';
 import { monthKey, monthLabel } from '@/lib/months';
 
 export type XlsxMatch = {
@@ -175,7 +175,8 @@ function buildPronosticuriSheet(
   }
 
   for (const m of matches) {
-    const locked = isLocked(m.kickoff_at, now);
+    // Reveal other players' picks only once the match has started (same rule as the app).
+    const started = hasStarted(m.kickoff_at, now);
     const rowValues: (string | number)[] = [
       m.round,
       formatKickoff(m.kickoff_at),
@@ -192,8 +193,8 @@ function buildPronosticuriSheet(
         cellFills.push(null);
         continue;
       }
-      // Hide other players' picks on a match that is not yet locked.
-      if (!revealAll && !locked && pl.id !== forPlayerId) {
+      // Hide other players' picks on a match that has not started yet.
+      if (!revealAll && !started && pl.id !== forPlayerId) {
         rowValues.push(LOCK);
         cellFills.push(null);
         continue;

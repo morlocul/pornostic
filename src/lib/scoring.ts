@@ -12,6 +12,12 @@ export function isLocked(kickoffAt: string | Date, now: Date = new Date()): bool
   return now.getTime() >= new Date(kickoffAt).getTime() - LOCK_MINUTES * 60_000;
 }
 
+// True once the match has kicked off. Used to reveal everyone's predicted scores
+// at the exact moment play starts (before that, only who-has-predicted is shown).
+export function hasStarted(kickoffAt: string | Date, now: Date = new Date()): boolean {
+  return now.getTime() >= new Date(kickoffAt).getTime();
+}
+
 const DAY_MS = 86_400_000;
 // A match whose kickoff is more than this many days after the previous match in
 // the round is treated as a far-postponed "straggler" (e.g. CFR–U Cluj moved to

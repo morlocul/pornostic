@@ -6,6 +6,8 @@ export const TSDB_SEASON = '2026-2027';
 export const S365_COMPETITION = 136;
 export const S365_SEASON_NUM = 72;
 
-// Temporar (decizia grupului): pronosticurile tuturor sunt vizibile mereu.
-// Blocarea la editare (1h înainte de meci) rămâne activă indiferent de flag.
-export const SHOW_ALL_PREDICTIONS = true;
+// Mod competitiv (decizia grupului): scorurile pronosticate ale celorlalți sunt
+// ascunse până când începe meciul (kickoff). Se vede DOAR cine a pus și cine n-a
+// pus, ca să vă puteți anunța între voi. Pune-l pe true pentru „toate vizibile mereu".
+// Blocarea la editare (1 min înainte de meci) rămâne activă indiferent de flag.
+export const SHOW_ALL_PREDICTIONS = false;
