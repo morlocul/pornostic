@@ -65,4 +65,28 @@ describe('currentRound', () => {
       { round: 2, status: 'scheduled' },
     ])).toBe(2);
   });
+  it('picks the round of the earliest-kickoff open match, not the lowest number', () => {
+    // Round 4 has one match rescheduled far into the future; round 5 is playing now.
+    // The current round must be 5, not 4. (Real bug: CFR–U Cluj moved to October.)
+    expect(currentRound([
+      { round: 4, status: 'scheduled', kickoff_at: '2026-10-08T17:00:00Z' },
+      { round: 5, status: 'scheduled', kickoff_at: '2026-08-14T15:30:00Z' },
+      { round: 5, status: 'scheduled', kickoff_at: '2026-08-17T18:30:00Z' },
+      { round: 6, status: 'scheduled', kickoff_at: '2026-08-21T15:30:00Z' },
+    ])).toBe(5);
+  });
+  it('a live match (kickoff in the past) wins as earliest, keeping its round current', () => {
+    expect(currentRound([
+      { round: 5, status: 'live', kickoff_at: '2026-08-14T15:30:00Z' },
+      { round: 5, status: 'scheduled', kickoff_at: '2026-08-17T18:30:00Z' },
+      { round: 4, status: 'scheduled', kickoff_at: '2026-10-08T17:00:00Z' },
+    ])).toBe(5);
+  });
+  it('the postponed match becomes current again once it is the earliest upcoming', () => {
+    // By October, rounds 5–10 are done; the rescheduled round-4 match is next.
+    expect(currentRound([
+      { round: 4, status: 'scheduled', kickoff_at: '2026-10-08T17:00:00Z' },
+      { round: 11, status: 'scheduled', kickoff_at: '2026-10-10T15:30:00Z' },
+    ])).toBe(4);
+  });
 });

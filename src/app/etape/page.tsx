@@ -9,6 +9,6 @@ export const dynamic = 'force-dynamic';
 export default async function EtapePage() {
   const session = await getSession();
   if (!session) redirect('/login');
-  const { data } = await db().from('matches').select('round, status').eq('season', SEASON);
+  const { data } = await db().from('matches').select('round, status, kickoff_at').eq('season', SEASON);
   redirect(`/etapa/${currentRound(data ?? [])}`);
 }

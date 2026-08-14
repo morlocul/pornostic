@@ -19,7 +19,7 @@ export default async function Home() {
   if (!session) redirect('/login');
 
   const { data: allMatches } = await db().from('matches')
-    .select('id, round, status').eq('season', SEASON);
+    .select('id, round, status, kickoff_at').eq('season', SEASON);
   const round = currentRound(allMatches ?? []);
 
   const { data: matches } = await db().from('matches')
