@@ -44,3 +44,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 pornosticul-export*.csv
+
+# local DB backups (contain player data + PIN hashes — never commit, repo is public)
+/backups/

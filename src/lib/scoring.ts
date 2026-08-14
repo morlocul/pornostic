@@ -20,6 +20,33 @@ export const ROUND_OUTLIER_DAYS = 7;
 // A straggler is hidden from the homepage until this many days before it's played.
 export const OUTLIER_REVEAL_DAYS = 3;
 
+// Split one round's matches (chronological) into those shown on the homepage now
+// vs. far-postponed stragglers still waiting. A straggler is a match separated
+// from the rest of the round by a >1-week gap; it stays "hidden" until
+// OUTLIER_REVEAL_DAYS before kickoff, then moves to the homepage. Finished/live
+// stragglers (kickoff in the past) are always "visible" — never on the wait list.
+export function partitionRoundMatches<T extends { kickoff_at: string | Date }>(
+  matches: T[],
+  now: Date = new Date(),
+): { visible: T[]; hidden: T[] } {
+  const sorted = [...matches].sort(
+    (a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime(),
+  );
+  const gapMs = ROUND_OUTLIER_DAYS * DAY_MS;
+  const revealMs = OUTLIER_REVEAL_DAYS * DAY_MS;
+  const visible: T[] = [];
+  const hidden: T[] = [];
+  let far = false;
+  for (let i = 0; i < sorted.length; i++) {
+    const k = new Date(sorted[i].kickoff_at).getTime();
+    // Once a >1-week jump appears, this match and every later one are stragglers.
+    if (i > 0 && k - new Date(sorted[i - 1].kickoff_at).getTime() > gapMs) far = true;
+    if (!far || now.getTime() >= k - revealMs) visible.push(sorted[i]);
+    else hidden.push(sorted[i]);
+  }
+  return { visible, hidden };
+}
+
 // One round's matches, chronological, with far-postponed stragglers hidden until
 // OUTLIER_REVEAL_DAYS before their kickoff. Used on the homepage so a match that's
 // two months away doesn't clutter the round that's actually being played now.
@@ -27,20 +54,7 @@ export function visibleRoundMatches<T extends { kickoff_at: string | Date }>(
   matches: T[],
   now: Date = new Date(),
 ): T[] {
-  const sorted = [...matches].sort(
-    (a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime(),
-  );
-  const gapMs = ROUND_OUTLIER_DAYS * DAY_MS;
-  const revealMs = OUTLIER_REVEAL_DAYS * DAY_MS;
-  const out: T[] = [];
-  let far = false;
-  for (let i = 0; i < sorted.length; i++) {
-    const k = new Date(sorted[i].kickoff_at).getTime();
-    // Once a >1-week jump appears, this match and every later one are stragglers.
-    if (i > 0 && k - new Date(sorted[i - 1].kickoff_at).getTime() > gapMs) far = true;
-    if (!far || now.getTime() >= k - revealMs) out.push(sorted[i]);
-  }
-  return out;
+  return partitionRoundMatches(matches, now).visible;
 }
 
 export function currentRound(

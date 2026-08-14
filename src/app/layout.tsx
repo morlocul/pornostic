@@ -33,6 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/">Etapa</Link>
               <Link href="/etape">Pronosticuri</Link>
               <Link href="/clasament">Clasament</Link>
+              <Link href="/amanate">Amânate</Link>
               {session.isAdmin && <Link href="/admin">Admin</Link>}
             </nav>
           </>

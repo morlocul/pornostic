@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  scorePrediction, isLocked, currentRound, LOCK_MINUTES, visibleRoundMatches,
+  scorePrediction, isLocked, currentRound, LOCK_MINUTES,
+  visibleRoundMatches, partitionRoundMatches,
 } from './scoring';
 
 describe('scorePrediction', () => {
@@ -69,6 +70,27 @@ describe('visibleRoundMatches', () => {
     ];
     expect(visibleRoundMatches(normal, new Date('2026-08-14T00:00:00Z')).map((m) => m.id))
       .toEqual(['x', 'y', 'z']);
+  });
+});
+
+describe('partitionRoundMatches (waiting list for the Amânate tab)', () => {
+  const round4 = [
+    { id: 'a', kickoff_at: '2026-08-07T18:00:00Z' },
+    { id: 'c', kickoff_at: '2026-08-10T18:30:00Z' },
+    { id: 'straggler', kickoff_at: '2026-10-08T17:00:00Z' },
+  ];
+  it('lists the straggler as hidden while it is far away', () => {
+    const { visible, hidden } = partitionRoundMatches(round4, new Date('2026-08-14T12:00:00Z'));
+    expect(visible.map((m) => m.id)).toEqual(['a', 'c']);
+    expect(hidden.map((m) => m.id)).toEqual(['straggler']);
+  });
+  it('drops the straggler off the waiting list once within 3 days', () => {
+    const { hidden } = partitionRoundMatches(round4, new Date('2026-10-06T12:00:00Z'));
+    expect(hidden).toEqual([]);
+  });
+  it('never puts a finished/past straggler on the waiting list', () => {
+    const { hidden } = partitionRoundMatches(round4, new Date('2026-10-09T12:00:00Z'));
+    expect(hidden).toEqual([]);
   });
 });
 
