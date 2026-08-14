@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { db, Match, Prediction } from '@/lib/db';
 import { getSession } from '@/lib/session';
-import { currentRound, isLocked } from '@/lib/scoring';
+import { currentRound, isLocked, visibleRoundMatches } from '@/lib/scoring';
 import { SEASON, SHOW_ALL_PREDICTIONS } from '@/lib/config';
 import PredictionForm from './PredictionForm';
 import GoalsList from './GoalsList';
@@ -22,9 +22,12 @@ export default async function Home() {
     .select('id, round, status, kickoff_at').eq('season', SEASON);
   const round = currentRound(allMatches ?? []);
 
-  const { data: matches } = await db().from('matches')
+  const { data: roundMatches } = await db().from('matches')
     .select('*').eq('season', SEASON).eq('round', round).order('kickoff_at');
-  const matchIds = (matches ?? []).map((m) => m.id);
+  // Hide far-postponed stragglers (e.g. a match moved 2 months out) until 3 days
+  // before they're played, so the homepage shows the round as it's actually played.
+  const matches = visibleRoundMatches(roundMatches ?? []);
+  const matchIds = matches.map((m) => m.id);
 
   const { data: preds } = matchIds.length
     ? await db().from('predictions').select('*, players(name, nickname)').in('match_id', matchIds)

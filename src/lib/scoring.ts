@@ -12,6 +12,37 @@ export function isLocked(kickoffAt: string | Date, now: Date = new Date()): bool
   return now.getTime() >= new Date(kickoffAt).getTime() - LOCK_MINUTES * 60_000;
 }
 
+const DAY_MS = 86_400_000;
+// A match whose kickoff is more than this many days after the previous match in
+// the round is treated as a far-postponed "straggler" (e.g. CFR–U Cluj moved to
+// October, two months after the rest of round 4).
+export const ROUND_OUTLIER_DAYS = 7;
+// A straggler is hidden from the homepage until this many days before it's played.
+export const OUTLIER_REVEAL_DAYS = 3;
+
+// One round's matches, chronological, with far-postponed stragglers hidden until
+// OUTLIER_REVEAL_DAYS before their kickoff. Used on the homepage so a match that's
+// two months away doesn't clutter the round that's actually being played now.
+export function visibleRoundMatches<T extends { kickoff_at: string | Date }>(
+  matches: T[],
+  now: Date = new Date(),
+): T[] {
+  const sorted = [...matches].sort(
+    (a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime(),
+  );
+  const gapMs = ROUND_OUTLIER_DAYS * DAY_MS;
+  const revealMs = OUTLIER_REVEAL_DAYS * DAY_MS;
+  const out: T[] = [];
+  let far = false;
+  for (let i = 0; i < sorted.length; i++) {
+    const k = new Date(sorted[i].kickoff_at).getTime();
+    // Once a >1-week jump appears, this match and every later one are stragglers.
+    if (i > 0 && k - new Date(sorted[i - 1].kickoff_at).getTime() > gapMs) far = true;
+    if (!far || now.getTime() >= k - revealMs) out.push(sorted[i]);
+  }
+  return out;
+}
+
 export function currentRound(
   matches: { round: number; status: string; kickoff_at?: string | null }[],
 ): number {

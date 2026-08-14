@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { scorePrediction, isLocked, currentRound, LOCK_MINUTES } from './scoring';
+import {
+  scorePrediction, isLocked, currentRound, LOCK_MINUTES, visibleRoundMatches,
+} from './scoring';
 
 describe('scorePrediction', () => {
   it('exact score = 2 points', () => {
@@ -29,6 +31,44 @@ describe('isLocked', () => {
     expect(isLocked(kickoff, ms(LOCK_MINUTES))).toBe(true); // exactly at the boundary
     expect(isLocked(kickoff, ms(0))).toBe(true); // kickoff
     expect(isLocked(kickoff, new Date('2026-07-21T00:00:00Z'))).toBe(true); // after
+  });
+});
+
+describe('visibleRoundMatches', () => {
+  // Round 4: a normal weekend cluster (Aug 7–10) plus CFR–U Cluj postponed to Oct 8.
+  const round4 = [
+    { id: 'a', kickoff_at: '2026-08-07T18:00:00Z' },
+    { id: 'b', kickoff_at: '2026-08-08T15:30:00Z' },
+    { id: 'c', kickoff_at: '2026-08-10T18:30:00Z' },
+    { id: 'straggler', kickoff_at: '2026-10-08T17:00:00Z' },
+  ];
+  it('sorts chronologically', () => {
+    const shuffled = [round4[2], round4[0], round4[1]];
+    expect(visibleRoundMatches(shuffled, new Date('2026-08-09T00:00:00Z')).map((m) => m.id))
+      .toEqual(['a', 'b', 'c']);
+  });
+  it('hides a >1-week straggler more than 3 days before it plays', () => {
+    // Mid-August: the Oct 8 match is far away → hidden.
+    const ids = visibleRoundMatches(round4, new Date('2026-08-14T12:00:00Z')).map((m) => m.id);
+    expect(ids).toEqual(['a', 'b', 'c']);
+    expect(ids).not.toContain('straggler');
+  });
+  it('reveals the straggler exactly 3 days before kickoff', () => {
+    const ids = visibleRoundMatches(round4, new Date('2026-10-05T17:00:00Z')).map((m) => m.id);
+    expect(ids).toContain('straggler');
+  });
+  it('keeps the straggler visible after it has started/finished', () => {
+    const ids = visibleRoundMatches(round4, new Date('2026-10-08T19:00:00Z')).map((m) => m.id);
+    expect(ids).toContain('straggler');
+  });
+  it('shows every match when the round has no big gap', () => {
+    const normal = [
+      { id: 'x', kickoff_at: '2026-08-14T15:30:00Z' },
+      { id: 'y', kickoff_at: '2026-08-16T18:30:00Z' },
+      { id: 'z', kickoff_at: '2026-08-17T18:30:00Z' },
+    ];
+    expect(visibleRoundMatches(normal, new Date('2026-08-14T00:00:00Z')).map((m) => m.id))
+      .toEqual(['x', 'y', 'z']);
   });
 });
 
