@@ -25,7 +25,7 @@ export default async function Etapa({ params }: { params: Promise<{ round: strin
   const { data: preds } = ids.length
     ? await db().from('predictions').select('*, players(name, nickname)').in('match_id', ids)
     : { data: [] };
-  const { data: roster } = await db().from('players').select('id, name, nickname').order('created_at');
+  const { data: roster } = await db().from('players').select('id, name, nickname').eq('active', true).order('created_at');
   const players = roster ?? [];
 
   return (

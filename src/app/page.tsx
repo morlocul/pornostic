@@ -33,8 +33,9 @@ export default async function Home() {
     ? await db().from('predictions').select('*, players(name, nickname)').in('match_id', matchIds)
     : { data: [] as (Prediction & { players: { name: string; nickname: string | null } })[] };
 
-  // Full roster so we can show who has NOT predicted yet (to nudge them).
-  const { data: roster } = await db().from('players').select('id, name, nickname').order('created_at');
+  // Active roster so we can show who has NOT predicted yet (to nudge them).
+  // Retired players are excluded — we don't nag someone who left the pool.
+  const { data: roster } = await db().from('players').select('id, name, nickname').eq('active', true).order('created_at');
   const players = roster ?? [];
 
   const mine = new Map((preds ?? []).filter((p) => p.player_id === session.playerId).map((p) => [p.match_id, p]));

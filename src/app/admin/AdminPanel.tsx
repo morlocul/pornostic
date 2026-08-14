@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation';
 import type { Match } from '@/lib/db';
 
 type Run = { id: number; ran_at: string; source: string; ok: boolean; message: string | null; upserted: number };
-type PlayerRow = { id: string; name: string; nickname: string | null };
+type PlayerRow = { id: string; name: string; nickname: string | null; active?: boolean };
 
-function PlayerPinRow({ p }: { p: PlayerRow }) {
+function PlayerPinRow({ p, onChanged }: { p: PlayerRow; onChanged: () => void }) {
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const retired = p.active === false;
 
   async function reset() {
     if (!/^\d{4}$/.test(pin)) { setMsg('4 cifre.'); return; }
@@ -23,11 +24,26 @@ function PlayerPinRow({ p }: { p: PlayerRow }) {
     else setMsg((await res.json()).error ?? 'Eroare.');
   }
 
+  async function setActive(active: boolean) {
+    if (!active && !confirm(`Scoți «${p.nickname ?? p.name}» din joc? Punctele lui rămân în clasament, dar nu mai poate pune pronosticuri. (reversibil)`)) return;
+    setBusy(true); setMsg('');
+    const res = await fetch('/api/admin/players', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: p.id, active }),
+    });
+    setBusy(false);
+    if (res.ok) onChanged();
+    else setMsg((await res.json()).error ?? 'Eroare.');
+  }
+
   return (
-    <div className="row">
-      <span style={{ flex: 1 }}>{p.name}{p.nickname ? ` (${p.nickname})` : ''}</span>
+    <div className="row" style={retired ? { opacity: 0.6 } : undefined}>
+      <span style={{ flex: 1 }}>{p.name}{p.nickname ? ` (${p.nickname})` : ''}{retired ? ' — retras' : ''}</span>
       <input className="score" style={{ width: 70 }} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="PIN nou" inputMode="numeric" maxLength={4} />
       <button onClick={reset} disabled={busy}>Resetează</button>
+      {retired
+        ? <button onClick={() => setActive(true)} disabled={busy}>Reactivează</button>
+        : <button onClick={() => setActive(false)} disabled={busy}>Scoate din joc</button>}
       {msg && <span className="muted">{msg}</span>}
     </div>
   );
@@ -127,8 +143,8 @@ export default function AdminPanel({ matches, runs, players }: { matches: Match[
       </form>
 
       <h2>Jucători</h2>
-      <p className="muted">Resetează PIN-ul unui prieten care l-a uitat.</p>
-      {players.map((p) => <PlayerPinRow key={p.id} p={p} />)}
+      <p className="muted">Resetează PIN-ul unui prieten care l-a uitat, sau scoate din joc pe cine a renunțat (punctele lui rămân în clasament, e reversibil).</p>
+      {players.map((p) => <PlayerPinRow key={p.id} p={p} onChanged={() => router.refresh()} />)}
 
       <h2>Ultimele rulări scraper</h2>
       {runs.map((r) => (

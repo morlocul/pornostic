@@ -13,7 +13,7 @@ export default async function Clasament({ searchParams }: { searchParams: Promis
 
   const { luna } = await searchParams;
 
-  const { data: players } = await db().from('players').select('id, name, nickname');
+  const { data: players } = await db().from('players').select('id, name, nickname, active');
   const { data: predData } = await db().from('predictions')
     .select('player_id, points, matches(kickoff_at, season)')
     .not('points', 'is', null);
@@ -43,11 +43,16 @@ export default async function Clasament({ searchParams }: { searchParams: Promis
     return {
       id: pl.id,
       label: pl.nickname ?? pl.name,
+      active: pl.active !== false,
+      played: mine.length,
       points: mine.reduce((s, p) => s + (p.points ?? 0), 0),
       exact: mine.filter((p) => p.points === 2).length,
       correct: mine.filter((p) => p.points === 1).length,
     };
-  }).sort((a, b) => b.points - a.points || b.exact - a.exact);
+  })
+    // Active players always show; retired players only where they actually scored (history).
+    .filter((r) => r.active || r.played > 0)
+    .sort((a, b) => b.points - a.points || b.exact - a.exact);
 
   const heading = activeLuna
     ? `Clasament — ${monthLabel(activeLuna)}`

@@ -7,6 +7,9 @@ export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Neautentificat.' }, { status: 401 });
 
+  const { data: me } = await db().from('players').select('active').eq('id', session.playerId).single();
+  if (me?.active === false) return NextResponse.json({ error: 'Cont retras din joc.' }, { status: 403 });
+
   const { matchId, home, away } = await req.json().catch(() => ({}));
   const valid = (n: unknown) => Number.isInteger(n) && (n as number) >= 0 && (n as number) <= 20;
   if (typeof matchId !== 'string' || !valid(home) || !valid(away))

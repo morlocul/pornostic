@@ -4,6 +4,9 @@ create table players (
   nickname text,
   pin_hash text not null,
   is_admin boolean not null default false,
+  -- false = retired from the pool (quit): keeps past predictions/points, but can't
+  -- log in or predict and is dropped from the "who hasn't predicted" nudge list.
+  active boolean not null default true,
   created_at timestamptz not null default now()
 );
 -- Self-chosen display name ("Poreclă"); case-insensitive unique, violation code 23505.

@@ -11,6 +11,8 @@ export async function POST(req: Request) {
   const { data: player } = await db().from('players').select('*').eq('name', name.trim()).single();
   if (!player || !(await bcrypt.compare(pin, player.pin_hash)))
     return NextResponse.json({ error: 'Nume sau PIN greșit.' }, { status: 401 });
+  if (player.active === false)
+    return NextResponse.json({ error: 'Contul e retras din joc. Contactează adminul.' }, { status: 403 });
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set(SESSION_COOKIE, await createSessionToken({ playerId: player.id, name: player.name, isAdmin: player.is_admin }), cookieOptions());
