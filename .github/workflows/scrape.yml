@@ -3,7 +3,7 @@ on:
   schedule:
     # GitHub fires scheduled triggers sparsely and late (~every 2h, not hourly),
     # so we DON'T rely on frequent triggers. Instead each run self-loops every
-    # 10 min for ~6 hours, so a single fired trigger covers a whole match block.
+    # 2 min for ~6 hours, so a single fired trigger covers a whole match block.
     # Two triggers/day (with queuing below) cover ~15:00–02:50 Romania. Repo is
     # public → Actions minutes are free, so long jobs cost nothing.
     - cron: '0 12 * * *'   # ~15:00 Romania — afternoon/early-evening block
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 355   # just under GitHub's 6h hard cap
     steps:
-      - name: Scrape every 10 minutes for ~6 hours
+      - name: Scrape every 2 minutes for ~6 hours
         run: |
           end=$(( $(date +%s) + 350*60 ))
           i=0
@@ -29,5 +29,5 @@ jobs:
               -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
               "${{ vars.APP_URL }}/api/cron/scrape" || echo 000)
             echo "ping $i at $(date -u '+%H:%M:%S')Z -> HTTP $code"
-            sleep 600
+            sleep 120
           done
