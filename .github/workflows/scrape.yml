@@ -1,14 +1,20 @@
 name: scrape
 on:
   schedule:
-    # GitHub fires scheduled triggers sparsely and late (~every 2h, not hourly),
-    # so we DON'T rely on frequent triggers. Instead each run self-loops every
-    # 1 min for ~6 hours, so a single fired trigger covers a whole match block.
-    # Two triggers/day (with queuing below) cover ~15:00–02:50 Romania. Repo is
-    # public → Actions minutes are free, so long jobs cost nothing.
-    - cron: '0 12 * * *'   # ~15:00 Romania — afternoon/early-evening block
-    - cron: '0 18 * * *'   # ~21:00 Romania — late-evening/night block
-  workflow_dispatch:
+    # GitHub's scheduled delivery is sparse and late (hours late, and sometimes
+    # a slot is skipped entirely — observed: an entire afternoon with no trigger).
+    # So the schedule is now only a SAFETY NET to (re)start the chain, NOT the
+    # primary mechanism. Multiple, well-spaced lines raise the odds that at least
+    # one fires each day and re-establishes the chain.
+    - cron: '0 0 * * *'   # safety net — restarts the chain if it ever breaks
+    - cron: '0 6 * * *'   # safety net
+    - cron: '0 12 * * *'  # safety net
+    - cron: '0 18 * * *'  # safety net
+  workflow_dispatch:      # manual trigger — also the easiest way to (re)start the chain
+
+permissions:
+  actions: write          # allows the run to re-dispatch the next run (the chain)
+  contents: read
 
 concurrency:
   group: scrape
@@ -19,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 355   # just under GitHub's 6h hard cap
     steps:
+      # Loop every 1 minute for ~6 hours, hitting the app's scrape endpoint.
+      # One fired run therefore covers a whole block of matches.
       - name: Scrape every 1 minute for ~6 hours
         run: |
           end=$(( $(date +%s) + 350*60 ))
@@ -31,3 +39,12 @@ jobs:
             echo "ping $i at $(date -u '+%H:%M:%S')Z -> HTTP $code"
             sleep 60
           done
+      # Hand off to the next run so the scraper stays alive around the clock
+      # WITHOUT depending on GitHub's flaky scheduled delivery. The schedule
+      # triggers above are the backup that re-establishes this chain if it ever
+      # breaks. gh is preinstalled on GitHub-hosted ubuntu runners.
+      - name: Hand off to the next run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run scrape.yml --ref "${GITHUB_REF_NAME:-master}"

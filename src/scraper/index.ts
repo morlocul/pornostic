@@ -7,7 +7,11 @@ import { scores365, fetchGameGoals, fetchGameState } from './scores365';
 import { sofascore } from './sofascore';
 import { thesportsdb } from './thesportsdb';
 
-const SOURCES: ScrapeSource[] = [scores365, sofascore, thesportsdb];
+// scores365 is the primary source (carries the live-tracking game ids). sofascore
+// now returns 403 Forbidden behind Cloudflare bot protection, so keep the working
+// thesportsdb fallback ahead of it — otherwise every scores365 failure would first
+// burn a round-trip on sofascore before reaching a usable source.
+const SOURCES: ScrapeSource[] = [scores365, thesportsdb, sofascore];
 
 async function upsertMatches(fetched: FetchedMatch[]): Promise<number> {
   if (!fetched.length) return 0;

@@ -30,7 +30,7 @@ Punctaj: 1X2 corect = 1 punct, scor exact = 2 puncte. Pronosticurile se închid 
 - Secrets and variables → Actions → **Secrets** → `CRON_SECRET` = aceeași valoare ca pe Vercel.
 - Secrets and variables → Actions → **Variables** → `APP_URL` = URL-ul Vercel (fără slash final).
 
-Workflow-ul `.github/workflows/scrape.yml` rulează la fiecare 30 min (10:00–21:30 UTC). Îl poți porni și manual (workflow_dispatch) din tab-ul **Actions**.
+Workflow-ul `.github/workflows/scrape.yml` împinge scraperul la fiecare 1 minut timp de ~6 ore, apoi se redeclanșează singur (self-chain), ca să rămână activ non-stop. Trigger-ele programate GitHub sunt doar o plasă de siguranță care repornește lanțul dacă se rupe. Îl poți porni și manual (workflow_dispatch) din tab-ul **Actions**.
 
 ## Dacă scraperul dă 403 (Sofascore blochează Vercel)
 
