@@ -25,6 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 355   # just under GitHub's 6h hard cap
     steps:
+      # Checkout so the repo exists on the runner. Without it, the hand-off step
+      # below fails with "not a git repository" because `gh workflow run` tries to
+      # detect the repo/ref via git.
+      - uses: actions/checkout@v4
       # Loop every 1 minute for ~6 hours, hitting the app's scrape endpoint.
       # One fired run therefore covers a whole block of matches.
       - name: Scrape every 1 minute for ~6 hours
@@ -47,4 +51,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run scrape.yml --ref "${GITHUB_REF_NAME:-master}"
+          gh workflow run scrape.yml --repo "${{ github.repository }}" --ref "${GITHUB_REF_NAME:-master}"
