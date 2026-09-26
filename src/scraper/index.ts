@@ -6,6 +6,7 @@ import { FetchedMatch, ScrapeSource } from './types';
 import { scores365, fetchGameGoals, fetchGameState } from './scores365';
 import { sofascore } from './sofascore';
 import { thesportsdb } from './thesportsdb';
+import { runScrapeWith, ScrapeResult } from './run';
 
 // scores365 is the primary source (carries the live-tracking game ids). sofascore
 // now returns 403 Forbidden behind Cloudflare bot protection, so keep the working
@@ -164,45 +165,26 @@ async function sweepMatchWindow(limit = 12): Promise<{ live: number; finalized: 
   return { live, finalized };
 }
 
-export async function runScrape(): Promise<{ ok: boolean; source: string; upserted: number; message: string }> {
-  for (const source of SOURCES) {
-    try {
-      const fetched = await source.fetchSeason();
-      if (!fetched.length) throw new Error('0 matches returned');
-      const upserted = await upsertMatches(fetched);
-      const result = { ok: true, source: source.name, upserted, message: `ok: ${fetched.length} fetched, ${upserted} upserted` };
-      try {
-        await db().from('scrape_runs').insert({ source: source.name, ok: true, message: result.message, upserted });
-      } catch { /* logging is best-effort */ }
-      try {
-        const swept = await sweepMatchWindow();
-        const bits: string[] = [];
-        if (swept.live > 0) bits.push(`live: ${swept.live}`);
-        if (swept.finalized > 0) bits.push(`finalizate: ${swept.finalized}`);
-        if (bits.length) result.message += `; ${bits.join(', ')}`;
-      } catch {
-        // match-window sweep is best-effort — must never fail the run
-      }
-      try {
-        await recomputePoints();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        result.message += `; recompute failed: ${msg}`;
-      }
-      try {
-        const filled = await fillGoals();
-        if (filled > 0) result.message += `; goluri: ${filled} meciuri`;
-      } catch {
-        // goals pass is best-effort — must never fail the run
-      }
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      try {
-        await db().from('scrape_runs').insert({ source: source.name, ok: false, message, upserted: 0 });
-      } catch { /* logging is best-effort */ }
-      // fall through to next source
-    }
-  }
-  return { ok: false, source: 'none', upserted: 0, message: 'toate sursele au eșuat' };
+export async function runScrape(): Promise<ScrapeResult> {
+  return runScrapeWith({
+    sources: SOURCES,
+    upsert: upsertMatches,
+    log: async (source, ok, message, upserted) => {
+      await db().from('scrape_runs').insert({ source, ok, message, upserted });
+    },
+    lastAttemptAt: async (source) => {
+      const { data, error } = await db()
+        .from('scrape_runs')
+        .select('ran_at')
+        .eq('source', source)
+        .order('ran_at', { ascending: false })
+        .limit(1);
+      if (error) throw new Error(error.message);
+      return data?.[0] ? new Date(data[0].ran_at as string).getTime() : null;
+    },
+    sweep: () => sweepMatchWindow(),
+    recompute: async () => { await recomputePoints(); },
+    fillGoals: () => fillGoals(),
+    now: () => Date.now(),
+  });
 }
