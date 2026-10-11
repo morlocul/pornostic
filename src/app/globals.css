@@ -296,6 +296,10 @@ nav a:active { transform: scale(.96); }
 .predict button:hover, .auth button:hover, .admin button:hover { filter: brightness(1.06); }
 .predict button:active, .auth button:active, .admin button:active { transform: translateY(1px) scale(.99); }
 .predict button:disabled { opacity: 0.55; box-shadow: none; cursor: default; }
+/* scor scris dar nesalvat: se vede imediat care meci a rămas în aer */
+.predict.dirty input { border-color: #f5c84b; }
+.predict .hint { flex-basis: 100%; text-align: center; color: #f5c84b; font-size: 0.85rem; font-weight: 600; }
+.predict .error { flex-basis: 100%; text-align: center; }
 .admin button { min-height: 40px; padding: 9px 14px; font-size: 0.85rem; }
 
 /* ---------- Predictions list ---------- */
